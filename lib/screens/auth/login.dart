@@ -173,7 +173,7 @@ class _LogInState extends State<LogIn> {
                     onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const IndexPage())),
                     icon: const Icon(Icons.arrow_back),
                   ),
-                  Center(child: Image.asset('lib/images/icon.jpg', height: 160, width: 160)),
+                  Center(child: Image.asset('lib/images/iconpng.png', height: 160, width: 160)),
                   const SizedBox(height: 8.0),
                   Text(
                     'Welcome back!',
@@ -262,13 +262,13 @@ class _LogInState extends State<LogIn> {
                           child: ElevatedButton(
                             onPressed: _isGoogleSigningIn ? null : _signInWithGoogle,
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.grey[50],
+                              backgroundColor: Colors.white,
                               foregroundColor: Colors.grey[700],
                               elevation: 0,
                               shadowColor: Colors.transparent,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(8),
-                                side: BorderSide(color: Colors.grey[200]!, width: 1),
+                                side: BorderSide(color: Colors.grey[300]!, width: 1),
                               ),
                               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                             ),
