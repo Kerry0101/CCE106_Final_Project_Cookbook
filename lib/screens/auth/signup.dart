@@ -22,6 +22,8 @@ class _SignUpState extends State<SignUp> {
   final TextEditingController _password = TextEditingController();
 
   bool rememberMe = false;
+  bool _obscurePassword = true;
+  // no scroll controller here; keep default SingleChildScrollView behavior
   Utils utils = Utils();
 
   // Sign up method with email verification
@@ -53,16 +55,12 @@ class _SignUpState extends State<SignUp> {
 
       utils.showSnackBar("Please verify your email before logging in", Colors.blue);
 
-
-      navigatorKey.currentState!.popUntil((route) => route.isFirst);
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => const LogIn(),
-        ),
-      );
+      // use navigatorKey for navigation after async gaps to avoid
+      // use_build_context_synchronously warnings
+      navigatorKey.currentState?.popUntil((route) => route.isFirst);
+      navigatorKey.currentState?.pushReplacement(MaterialPageRoute(builder: (context) => const LogIn()));
     } on FirebaseAuthException catch (e) {
-      print(e);
+      debugPrint(e.toString());
       utils.showSnackBar(e.message, Colors.red);
     }
   }
@@ -73,11 +71,9 @@ class _SignUpState extends State<SignUp> {
     if (user != null) {
       await user.reload();
       if (user.emailVerified) {
-
         utils.showSnackBar("Email verified! Proceeding to home.", Colors.green);
-        Navigator.pushReplacementNamed(context, '/home');
+        navigatorKey.currentState?.pushReplacementNamed('/home');
       } else {
-
         utils.showSnackBar('Please verify your email before logging in', Colors.red);
       }
     }
@@ -188,11 +184,19 @@ class _SignUpState extends State<SignUp> {
                       const SizedBox(height: 20),
                       TextFormField(
                         controller: _password,
-                        obscureText: true,
-                        decoration: const InputDecoration(
+                        obscureText: _obscurePassword,
+                        decoration: InputDecoration(
                           labelText: 'Password',
-                          prefixIcon: Icon(Icons.lock),
-                          border: UnderlineInputBorder(),
+                          prefixIcon: const Icon(Icons.lock),
+                          border: const UnderlineInputBorder(),
+                          suffixIcon: IconButton(
+                            icon: Icon(_obscurePassword ? Icons.visibility : Icons.visibility_off),
+                            onPressed: () {
+                              setState(() {
+                                _obscurePassword = !_obscurePassword;
+                              });
+                            },
+                          ),
                         ),
                         autovalidateMode: AutovalidateMode.onUserInteraction,
                         validator: (value) => value != null && value.length < 6

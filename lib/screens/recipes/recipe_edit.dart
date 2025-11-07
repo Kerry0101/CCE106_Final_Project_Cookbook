@@ -2,7 +2,7 @@ import 'dart:io';
 import 'package:cookbook/utils/utils.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -377,12 +377,12 @@ class _recipeEditState extends State<recipeEdit> {
                     );
                     utils.showSnackBar(
                         'Recipe updated successfully!', Colors.green);
-                  } catch (error) {
-                    print('Error: $error');
-                    utils.showSnackBar(
-                        'An error occurred. Please try again later.',
-                        Colors.red);
-                  }
+          } catch (error) {
+            debugPrint('Error: $error');
+            utils.showSnackBar(
+              'An error occurred. Please try again later.',
+              Colors.red);
+            }
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: primaryColor2,

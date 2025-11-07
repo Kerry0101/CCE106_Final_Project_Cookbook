@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:flutter/foundation.dart' show debugPrint;
 
 class CloudinaryService {
   static const String cloudName = 'dgajwfncj';
@@ -36,12 +37,12 @@ class CloudinaryService {
         var responseData = json.decode(response.body);
         return responseData['secure_url']; // Return the secure URL
       } else {
-        print('Cloudinary upload error: ${response.statusCode}');
-        print('Response: ${response.body}');
+        debugPrint('Cloudinary upload error: ${response.statusCode}');
+        debugPrint('Response: ${response.body}');
         return null;
       }
     } catch (e) {
-      print('Error uploading to Cloudinary: $e');
+      debugPrint('Error uploading to Cloudinary: $e');
       return null;
     }
   }
@@ -73,12 +74,12 @@ class CloudinaryService {
         var responseData = json.decode(response.body);
         return responseData['secure_url']; // Return the secure URL
       } else {
-        print('Cloudinary upload error: ${response.statusCode}');
-        print('Response: ${response.body}');
+        debugPrint('Cloudinary upload error: ${response.statusCode}');
+        debugPrint('Response: ${response.body}');
         return null;
       }
     } catch (e) {
-      print('Error uploading to Cloudinary: $e');
+      debugPrint('Error uploading to Cloudinary: $e');
       return null;
     }
   }

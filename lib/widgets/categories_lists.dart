@@ -17,7 +17,7 @@ class _CategoriesListState extends State<CategoriesList> {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        print('Tapped on ${widget.labelText}');
+  debugPrint('Tapped on ${widget.labelText}');
       },
       child: Container(
         color: p_color,

@@ -4,7 +4,7 @@ import 'package:cookbook/screens/home.dart';
 import 'package:cookbook/utils/utils.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 
@@ -129,7 +129,7 @@ class _recipeCreateState extends State<recipeCreate> {
                   utils.showSnackBar(
                       'Recipe created successfully!', Colors.green);
                 } catch (error) {
-                  print('Error: $error');
+                  debugPrint('Error: $error');
                   utils.showSnackBar(
                       'An error occurred. Please try again later.', Colors.red);
                 }
@@ -374,7 +374,7 @@ class _recipeCreateState extends State<recipeCreate> {
                         'Recipe created successfully!.', Colors.green);
                   } catch (error) {
                     // Handle any errors that occur during the process
-                    print('Error: $error');
+                    debugPrint('Error: $error');
                     utils.showSnackBar(
                         'An error occurred. Please try again later.',
                         Colors.red);

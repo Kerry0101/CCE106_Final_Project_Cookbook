@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cookbook/utils/colors.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LogIn extends StatefulWidget {
   const LogIn({super.key});
@@ -18,35 +19,89 @@ class _LogInState extends State<LogIn> {
   final TextEditingController _email = TextEditingController();
   final TextEditingController _password = TextEditingController();
   bool rememberMe = false;
-  Utils utils = Utils();
+  bool _obscurePassword = true;
+  bool _isLoggingIn = false;
+  final ScrollController _scrollController = ScrollController();
+  final Utils utils = Utils();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedEmail();
+  }
 
 
-  void userLogIn() async {
-    showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const Center(child: CircularProgressIndicator()));
+  Future<void> _loadSavedEmail() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final saved = prefs.getBool('remember_me') ?? false;
+      if (saved) {
+        final email = prefs.getString('saved_email') ?? '';
+        if (!mounted) return;
+        setState(() {
+          rememberMe = true;
+          _email.text = email;
+        });
+      }
+    } catch (e) {
+      debugPrint('loadSavedEmail error: $e');
+    }
+  }
+
+  
+  Future<void> _userLogIn() async {
+    if (_isLoggingIn) return;
+    setState(() => _isLoggingIn = true);
 
     try {
+      final userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: _email.text.trim(),
+        password: _password.text,
+      );
 
-      UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
-          email: _email.text, password: _password.text);
-
-
-      if (userCredential.user!.emailVerified) {
-
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const HomePage()),
-        );
-      } else {
-
+      if (!(userCredential.user?.emailVerified ?? false)) {
         utils.showSnackBar('Please verify your email before logging in', Colors.red);
+        return;
       }
+
+      // Save remember-me preference
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        if (rememberMe) {
+          await prefs.setBool('remember_me', true);
+          await prefs.setString('saved_email', _email.text.trim());
+        } else {
+          await prefs.remove('remember_me');
+          await prefs.remove('saved_email');
+        }
+      } catch (e) {
+        debugPrint('prefs error: $e');
+      }
+
+      if (!mounted) return;
+      
+      // Clear the entire navigation stack to avoid leftover dialogs
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const HomePage()),
+        (_) => false,
+      );
     } on FirebaseAuthException catch (e) {
-      print(e);
-      utils.showSnackBar(e.message, Colors.red);
+      utils.showSnackBar(e.message ?? 'Authentication failed', Colors.red);
+    } catch (e) {
+      utils.showSnackBar('An error occurred', Colors.red);
+      debugPrint('login error: $e');
+    } finally {
+      if (mounted) setState(() => _isLoggingIn = false);
     }
+  }
+
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    _email.dispose();
+    _password.dispose();
+    super.dispose();
   }
 
   @override
@@ -57,161 +112,103 @@ class _LogInState extends State<LogIn> {
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
-            colors: [
-              bgc1,
-              bgc2,
-              bgc3,
-              bgc4,
-            ],
+            colors: [bgc1, bgc2, bgc3, bgc4],
           ),
         ),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(8, 3, 0, 0),
-                child: SizedBox(
-                  width: 50,
-                  height: 50,
-                  child: IconButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: ((context) => const IndexPage()),
-                        ),
-                      );
-                    },
+        child: SafeArea(
+          child: Scrollbar(
+            controller: _scrollController,
+            thumbVisibility: true,
+            child: SingleChildScrollView(
+              controller: _scrollController,
+              padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  IconButton(
+                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const IndexPage())),
                     icon: const Icon(Icons.arrow_back),
                   ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Center(
-                  child: Image.asset(
-                    'lib/images/icon.jpg',
-                    height: 300,
-                    width: 300,
+                  Center(child: Image.asset('lib/images/icon.jpg', height: 160, width: 160)),
+                  const SizedBox(height: 8.0),
+                  Text(
+                    'Welcome back!',
+                    style: GoogleFonts.montserrat(fontSize: 22, fontWeight: FontWeight.w700, color: primaryColor),
                   ),
-                ),
-              ),
-              const SizedBox(height: 8.0),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
-                child: Text(
-                  "Welcome back!",
-                  style: GoogleFonts.montserrat(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: primaryColor,
-                  ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(20.0),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    children: [
-                      TextFormField(
-                        controller: _email,
-                        decoration: const InputDecoration(
-                          labelText: 'Email',
-                          prefixIcon: Icon(Icons.email),
-                          border: UnderlineInputBorder(),
+                  const SizedBox(height: 16),
+                  Form(
+                    key: _formKey,
+                    child: Column(
+                      children: [
+                        TextFormField(
+                          controller: _email,
+                          keyboardType: TextInputType.emailAddress,
+                          decoration: const InputDecoration(labelText: 'Email', prefixIcon: Icon(Icons.email)),
+                          validator: (v) => v == null || v.trim().isEmpty ? 'Please enter your email' : null,
                         ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter your email';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 20),
-                      TextFormField(
-                        controller: _password,
-                        obscureText: true,
-                        decoration: const InputDecoration(
-                          labelText: 'Password',
-                          prefixIcon: Icon(Icons.lock),
-                          border: UnderlineInputBorder(),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter your password';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          Column(
-                            children: [
-                              Checkbox(
-                                value: rememberMe,
-                                onChanged: (value) {
-                                  setState(() {
-                                    rememberMe = value!;
-                                  });
-                                },
-                              ),
-                            ],
-                          ),
-                          const Text(
-                            'Remember me',
-                            style: TextStyle(
-                              fontSize: 14,
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          key: const Key('loginPasswordField'),
+                          controller: _password,
+                          obscureText: _obscurePassword,
+                          decoration: InputDecoration(
+                            labelText: 'Password',
+                            prefixIcon: const Icon(Icons.lock),
+                            suffixIcon: IconButton(
+                              key: const Key('loginPasswordToggle'),
+                              icon: Icon(_obscurePassword ? Icons.visibility : Icons.visibility_off),
+                              onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                             ),
                           ),
-                          const Spacer(),
-                          GestureDetector(
-                            onTap: () {
-                              // Handle forgot password
-                            },
-                            child: const Text(
-                              'Forgot password?',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.blue,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 20),
-                      GestureDetector(
-                        onTap: () {
-                          userLogIn(); // Call the login function
-                        },
-                        child: Container(
+                          validator: (v) => v == null || v.isEmpty ? 'Please enter your password' : null,
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Checkbox(value: rememberMe, onChanged: (v) => setState(() => rememberMe = v ?? false)),
+                            const Text('Remember me'),
+                            const Spacer(),
+                            TextButton(onPressed: () {}, child: const Text('Forgot password?')),
+                          ],
+                        ),
+                        const SizedBox(height: 18),
+                        SizedBox(
                           width: double.infinity,
-                          height: 50,
-                          decoration: BoxDecoration(
-                            color: primaryColor,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          alignment: Alignment.center,
-                          child: const Text(
-                            'Log In',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
+                          height: 48,
+                          child: ElevatedButton(
+                            onPressed: _isLoggingIn
+                                ? null
+                                : () {
+                              if (_formKey.currentState?.validate() ?? false) {
+                                _userLogIn();
+                              }
+                                },
+                            child: _isLoggingIn
+                                ? const SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                    ),
+                                  )
+                                : const Text('Log In'),
                           ),
                         ),
-                      ),
-
-                        ],
-                      ),
-
+                        const SizedBox(height: 12),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Text("Don't have an account?"),
+                            TextButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const IndexPage())), child: const Text('Register')),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-            ],
+                ],
+              ),
+            ),
           ),
         ),
       ),

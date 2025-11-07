@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:cookbook/models/recipe.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -61,9 +62,9 @@ Future<void> updateIsFavorite(String recipeId, bool isFavorite) async {
   try {
     final docRecipe = FirebaseFirestore.instance.collection('recipes').doc(recipeId);
     await docRecipe.update({'isFavorite': isFavorite});
-    print('isFavorite updated successfully');
+  debugPrint('isFavorite updated successfully');
   } catch (e) {
-    print('Error updating isFavorite: $e');
+  debugPrint('Error updating isFavorite: $e');
     // Handle error accordingly
   }
 }

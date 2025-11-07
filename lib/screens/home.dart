@@ -21,6 +21,8 @@ class _HomePageState extends State<HomePage> {
   num userRecipeCount = 0;
   String _selectedCategory = 'All';
 
+    final ScrollController _homeScrollCtrl = ScrollController();
+
   @override
   void initState() {
     super.initState();
@@ -67,8 +69,12 @@ class _HomePageState extends State<HomePage> {
         ],
       ),
       drawer: buildDrawer(context),
-      body: ListView(
-        children: [
+      body: Scrollbar(
+        controller: _homeScrollCtrl,
+        thumbVisibility: true,
+        child: ListView(
+          controller: _homeScrollCtrl,
+          children: [
           Container(
             color: p_color,
             child: Padding(
@@ -262,70 +268,70 @@ class _HomePageState extends State<HomePage> {
               ],
             ),
           ),
-          Expanded(
-            child: StreamBuilder<List<Recipe>>(
-              stream: readRecipes(category: _selectedCategory),
-              builder: (context, snapshot) {
-                if (snapshot.hasError) {
-                  return Center(child: Text('Error: ${snapshot.error}'));
-                }
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
+          
 
-                final List<Recipe> recipes = snapshot.data!;
+          StreamBuilder<List<Recipe>>(
+            stream: readRecipes(category: _selectedCategory),
+            builder: (context, snapshot) {
+              if (snapshot.hasError) {
+                return Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Center(child: Text('Error: ${snapshot.error}')),
+                );
+              }
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 32),
+                  child: Center(child: CircularProgressIndicator()),
+                );
+              }
 
-                if (recipes.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          'No recipes yet. Create one now!',
-                          style: GoogleFonts.lato(
-                            fontSize: 18,
-                            color: Colors.grey,
-                          ),
-                        ),
-                      ],
+              final recipes = snapshot.data ?? const <Recipe>[];
+              if (recipes.isEmpty) {
+                return Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Center(
+                    child: Text(
+                      'No recipes yet. Create one now!',
+                      style: GoogleFonts.lato(fontSize: 18, color: Colors.grey),
                     ),
-                  );
-                }
-                if (_uNameController.text.isEmpty) {
-                  return ListView.builder(
-                    shrinkWrap: true,
-                    itemCount: recipes.length,
-                    itemBuilder: (context, index) {
-                      final Recipe recipe = recipes[index];
-                      return Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: RecipesButton(recipe: recipe),
-                      );
-                    },
-                  );
-                } else {
-                  return ListView.builder(
-                    shrinkWrap: true,
-                    itemCount: recipes.length,
-                    itemBuilder: (context, index) {
-                      final Recipe recipe = recipes[index];
-                      if (recipe.name.toLowerCase().contains(
-                          _uNameController.text.toLowerCase().toLowerCase())) {
-                        return Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: RecipesButton(recipe: recipe),
-                        );
-                      } else {
-                        return const SizedBox.shrink();
-                      }
-                    },
-                  );
-                }
-              },
-            ),
+                  ),
+                );
+              }
+
+              // IMPORTANT: this inner ListView must not scroll; let the outer ListView scroll.
+              return ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: recipes.length,
+                itemBuilder: (context, index) {
+                  final recipe = recipes[index];
+                  if (_uNameController.text.isEmpty ||
+                      recipe.name.toLowerCase().contains(
+                        _uNameController.text.toLowerCase(),
+                      )) {
+                    return Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: RecipesButton(recipe: recipe),
+                    );
+                  }
+                  return const SizedBox.shrink();
+                },
+              );
+            },
           ),
+          const SizedBox(height: 16),
         ],
+        ),
       ),
     );
   }
+
+  @override
+  void dispose() {
+    _homeScrollCtrl.dispose();
+    _uNameController.dispose();
+    super.dispose();
+  }
+
 }
