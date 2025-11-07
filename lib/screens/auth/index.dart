@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:cookbook/screens/auth/signup.dart';
 import 'package:cookbook/services/authentication.dart';
 import 'package:cookbook/utils/colors.dart';
+import 'package:cookbook/utils/page_transitions.dart';
 
 class IndexPage extends StatefulWidget {
   const IndexPage({super.key});
@@ -139,11 +140,11 @@ class _IndexPageState extends State<IndexPage> {
                                 const Spacer(),
                                 GestureDetector(
                                   onTap: () {
-                                    Navigator.pushReplacement(
+                                    Navigator.push(
                                       context,
-                                      MaterialPageRoute(
-                                        builder: (context) =>
-                                        const AuthenticationUser(),
+                                      SlidePageRoute(
+                                        page: const AuthenticationUser(),
+                                        direction: AxisDirection.left,
                                       ),
                                     );
                                   },

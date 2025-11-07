@@ -1,6 +1,8 @@
 import 'package:cookbook/screens/auth/index.dart';
+import 'package:cookbook/screens/auth/signup.dart';
 import 'package:cookbook/screens/home.dart';
 import 'package:cookbook/utils/utils.dart';
+import 'package:cookbook/utils/page_transitions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -170,7 +172,13 @@ class _LogInState extends State<LogIn> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   IconButton(
-                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const IndexPage())),
+                    onPressed: () => Navigator.push(
+                      context, 
+                      SlidePageRoute(
+                        page: const IndexPage(),
+                        direction: AxisDirection.right,
+                      ),
+                    ),
                     icon: const Icon(Icons.arrow_back),
                   ),
                   Center(child: Image.asset('lib/images/iconpng.png', height: 160, width: 160)),
@@ -291,7 +299,7 @@ class _LogInState extends State<LogIn> {
                                       ),
                                       const SizedBox(width: 12),
                                       Text(
-                                        'Sign in with Google',
+                                        'Sign-In with Google',
                                         style: GoogleFonts.lato(
                                           color: Colors.grey[700],
                                           fontSize: 16,
@@ -308,7 +316,16 @@ class _LogInState extends State<LogIn> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             const Text("Don't have an account?"),
-                            TextButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const IndexPage())), child: const Text('Register')),
+                            TextButton(
+                              onPressed: () => Navigator.push(
+                                context, 
+                                SlidePageRoute(
+                                  page: const SignUp(),
+                                  direction: AxisDirection.left,
+                                ),
+                              ), 
+                              child: const Text('Register'),
+                            ),
                           ],
                         ),
                       ],
