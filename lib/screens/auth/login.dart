@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cookbook/utils/colors.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 class LogIn extends StatefulWidget {
   const LogIn({super.key});
@@ -21,6 +22,7 @@ class _LogInState extends State<LogIn> {
   bool rememberMe = false;
   bool _obscurePassword = true;
   bool _isLoggingIn = false;
+  bool _isGoogleSigningIn = false;
   final ScrollController _scrollController = ScrollController();
   final Utils utils = Utils();
 
@@ -92,6 +94,48 @@ class _LogInState extends State<LogIn> {
       debugPrint('login error: $e');
     } finally {
       if (mounted) setState(() => _isLoggingIn = false);
+    }
+  }
+
+  Future<void> _signInWithGoogle() async {
+    if (_isGoogleSigningIn) return;
+    setState(() => _isGoogleSigningIn = true);
+
+    try {
+      // Trigger the Google Sign-In flow
+      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+      
+      if (googleUser == null) {
+        // User canceled the sign-in
+        return;
+      }
+
+      // Obtain the auth details from the request
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+
+      // Create a new credential
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      // Sign in to Firebase with the Google credential
+      await FirebaseAuth.instance.signInWithCredential(credential);
+
+      if (!mounted) return;
+      
+      // Navigate to home page
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const HomePage()),
+        (_) => false,
+      );
+    } on FirebaseAuthException catch (e) {
+      utils.showSnackBar(e.message ?? 'Google Sign-In failed', Colors.red);
+    } catch (e) {
+      utils.showSnackBar('An error occurred during Google Sign-In', Colors.red);
+      debugPrint('Google sign-in error: $e');
+    } finally {
+      if (mounted) setState(() => _isGoogleSigningIn = false);
     }
   }
 
@@ -195,6 +239,70 @@ class _LogInState extends State<LogIn> {
                                 : const Text('Log In'),
                           ),
                         ),
+                        const SizedBox(height: 24),
+                        
+                        // "or" divider
+                        Row(
+                          children: [
+                            Expanded(child: Divider(thickness: 1, color: Colors.grey[400])),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              child: Text('or', style: TextStyle(color: Colors.grey[600])),
+                            ),
+                            Expanded(child: Divider(thickness: 1, color: Colors.grey[400])),
+                          ],
+                        ),
+                        
+                        const SizedBox(height: 24),
+                        
+                        // Google Sign-In button
+                        SizedBox(
+                          width: double.infinity,
+                          height: 48,
+                          child: ElevatedButton(
+                            onPressed: _isGoogleSigningIn ? null : _signInWithGoogle,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.grey[50],
+                              foregroundColor: Colors.grey[700],
+                              elevation: 0,
+                              shadowColor: Colors.transparent,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                side: BorderSide(color: Colors.grey[200]!, width: 1),
+                              ),
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            ),
+                            child: _isGoogleSigningIn
+                                ? SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.grey[600]!),
+                                    ),
+                                  )
+                                : Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Image.asset(
+                                        'lib/images/button_icons/google.png',
+                                        height: 20,
+                                        width: 20,
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Text(
+                                        'Sign in with Google',
+                                        style: GoogleFonts.lato(
+                                          color: Colors.grey[700],
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                          ),
+                        ),
+                        
                         const SizedBox(height: 12),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
