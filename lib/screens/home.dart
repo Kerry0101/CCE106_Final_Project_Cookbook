@@ -7,7 +7,6 @@ import 'package:cookbook/widgets/my_drawer.dart';
 import 'package:cookbook/widgets/categories_lists.dart';
 import 'package:cookbook/widgets/recipes_button.dart';
 import 'package:cookbook/utils/colors.dart';
-import 'package:cookbook/utils/logout_dialog.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -42,31 +41,6 @@ class _HomePageState extends State<HomePage> {
           "Culinary Chronicles",
           style: GoogleFonts.lato(fontWeight: FontWeight.bold),
         ),
-        actions: [
-          PopupMenuButton<String>(
-            onSelected: (String choice) {
-              switch (choice) {
-                case 'logout':
-                  confirmLogout(context);
-                  break;
-              }
-            },
-            itemBuilder: (BuildContext context) {
-              return <PopupMenuEntry<String>>[
-                const PopupMenuItem<String>(
-                  value: 'logout',
-                  child: Row(
-                    children: [
-                      Icon(Icons.logout),
-                      SizedBox(width: 8),
-                      Text('Logout'),
-                    ],
-                  ),
-                ),
-              ];
-            },
-          ),
-        ],
       ),
       drawer: buildDrawer(context),
       body: Scrollbar(

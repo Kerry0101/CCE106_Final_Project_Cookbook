@@ -7,7 +7,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cookbook/utils/colors.dart';
-import 'package:cookbook/screens/auth/login.dart'; 
+import 'package:cookbook/screens/auth/login.dart';
 
 class SignUp extends StatefulWidget {
   const SignUp({super.key});
@@ -71,6 +71,7 @@ class _SignUpState extends State<SignUp> {
         'dateOfBirth': _selectedDate?.toIso8601String(),
         'age': calculatedAge ?? int.tryParse(_age.text),
         'gender': _selectedGender,
+        'role': 'user', // Default role for new users
         'createdAt': FieldValue.serverTimestamp(),
       });
 

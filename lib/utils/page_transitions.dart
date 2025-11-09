@@ -16,16 +16,16 @@ class SlidePageRoute extends PageRouteBuilder {
             Offset begin;
             switch (direction) {
               case AxisDirection.left:
-                begin = const Offset(1.0, 0.0); // Slide from right to left
+                begin = const Offset(-1.0, 0.0); // Slide from right to left
                 break;
               case AxisDirection.right:
-                begin = const Offset(-1.0, 0.0); // Slide from left to right
+                begin = const Offset(1.0, 0.0); // Slide from left to right
                 break;
               case AxisDirection.up:
-                begin = const Offset(0.0, 1.0); // Slide from bottom to top
+                begin = const Offset(0.0, -1.0); // Slide from bottom to top
                 break;
               case AxisDirection.down:
-                begin = const Offset(0.0, -1.0); // Slide from top to bottom
+                begin = const Offset(0.0, 1.0); // Slide from top to bottom
                 break;
             }
             const end = Offset.zero;

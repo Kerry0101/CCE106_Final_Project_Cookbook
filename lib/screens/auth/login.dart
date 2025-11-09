@@ -1,4 +1,3 @@
-import 'package:cookbook/screens/auth/index.dart';
 import 'package:cookbook/screens/auth/signup.dart';
 import 'package:cookbook/screens/home.dart';
 import 'package:cookbook/utils/utils.dart';
@@ -171,16 +170,6 @@ class _LogInState extends State<LogIn> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  IconButton(
-                    onPressed: () => Navigator.push(
-                      context, 
-                      SlidePageRoute(
-                        page: const IndexPage(),
-                        direction: AxisDirection.right,
-                      ),
-                    ),
-                    icon: const Icon(Icons.arrow_back),
-                  ),
                   Center(child: Image.asset('lib/images/iconpng.png', height: 160, width: 160)),
                   const SizedBox(height: 8.0),
                   Text(

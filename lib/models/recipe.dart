@@ -12,6 +12,11 @@ class Recipe {
   final List<String> directions;
   bool isFavorite;
   String? imageUrl;
+  String status; // 'pending', 'approved', 'rejected'
+  DateTime? submittedAt;
+  DateTime? approvedAt;
+  String? approvedBy;
+  String? rejectionReason;
 
   Recipe({
     this.recipeID = '',
@@ -27,6 +32,11 @@ class Recipe {
     required this.directions,
     required this.isFavorite,
     this.imageUrl,
+    this.status = 'pending',
+    this.submittedAt,
+    this.approvedAt,
+    this.approvedBy,
+    this.rejectionReason,
   });
 
   Map<String, dynamic> toJson() {
@@ -44,6 +54,11 @@ class Recipe {
       'directions': directions,
       'isFavorite': isFavorite,
       'imageUrl': imageUrl,
+      'status': status,
+      'submittedAt': submittedAt,
+      'approvedAt': approvedAt,
+      'approvedBy': approvedBy,
+      'rejectionReason': rejectionReason,
     };
   }
 
@@ -61,5 +76,14 @@ class Recipe {
     directions: List<String>.from(json['directions'] ?? []),
     isFavorite: json['isFavorite'] ?? false,
     imageUrl: json['imageUrl'],
+    status: json['status'] ?? 'pending',
+    submittedAt: json['submittedAt'] != null 
+        ? (json['submittedAt'] as dynamic).toDate() 
+        : null,
+    approvedAt: json['approvedAt'] != null 
+        ? (json['approvedAt'] as dynamic).toDate() 
+        : null,
+    approvedBy: json['approvedBy'],
+    rejectionReason: json['rejectionReason'],
   );
 }

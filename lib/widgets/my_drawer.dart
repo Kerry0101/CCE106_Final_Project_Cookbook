@@ -1,12 +1,16 @@
 import 'dart:ui';
 import 'package:cookbook/services/firestore_functions.dart';
+import 'package:cookbook/services/role_service.dart';
+import 'package:cookbook/services/moderation_service.dart';
+import 'package:cookbook/utils/logout_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cookbook/screens/favorites.dart';
-import 'package:cookbook/screens/home.dart';
+import 'package:cookbook/screens/my_recipes_page.dart';
 import 'package:cookbook/screens/recipes/recipe_create.dart';
 import 'package:cookbook/screens/shopping_lists.dart';
+import 'package:cookbook/screens/admin/moderate_recipes_page.dart';
 import 'package:cookbook/utils/colors.dart';
 
 Widget buildDrawer(BuildContext context) {
@@ -89,7 +93,7 @@ Widget buildDrawer(BuildContext context) {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const HomePage()),
+                  MaterialPageRoute(builder: (context) => const MyRecipesPage()),
                 );
               },
             ),
@@ -140,6 +144,90 @@ Widget buildDrawer(BuildContext context) {
                   MaterialPageRoute(
                       builder: (context) => const FavoritesList()),
                 );
+              },
+            ),
+            // Admin-only menu items
+            StreamBuilder<String>(
+              stream: RoleService.roleStream(),
+              builder: (context, roleSnapshot) {
+                if (roleSnapshot.hasData && roleSnapshot.data == 'admin') {
+                  return Column(
+                    children: [
+                      Divider(color: primaryColor.withOpacity(0.3)),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            'ADMIN',
+                            style: GoogleFonts.lato(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: primaryColor,
+                            ),
+                          ),
+                        ),
+                      ),
+                      ListTile(
+                        leading: Icon(
+                          Icons.admin_panel_settings,
+                          color: primaryColor,
+                        ),
+                        title: Text(
+                          'Moderate Recipes',
+                          style: GoogleFonts.lato(),
+                        ),
+                        trailing: StreamBuilder<int>(
+                          stream: ModerationService.getPendingCount(),
+                          builder: (context, countSnapshot) {
+                            if (countSnapshot.hasData && countSnapshot.data! > 0) {
+                              return Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(
+                                  color: Colors.red,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Text(
+                                  '${countSnapshot.data}',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              );
+                            }
+                            return const SizedBox.shrink();
+                          },
+                        ),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const ModerateRecipesPage(),
+                            ),
+                          );
+                        },
+                      ),
+                      Divider(color: primaryColor.withOpacity(0.3)),
+                    ],
+                  );
+                }
+                return const SizedBox.shrink();
+              },
+            ),
+            ListTile(
+              leading: Icon(
+                Icons.logout,
+                color: primaryColor,
+              ),
+              title: Text(
+                'Logout',
+                style: GoogleFonts.lato(),
+              ),
+              onTap: () {
+                Navigator.pop(context); // Close the drawer first
+                confirmLogout(context);
               },
             ),
           ],
