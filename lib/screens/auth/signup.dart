@@ -23,6 +23,7 @@ class _SignUpState extends State<SignUp> {
   final TextEditingController _password = TextEditingController();
   final TextEditingController _confirmPassword = TextEditingController();
   final TextEditingController _age = TextEditingController();
+  final TextEditingController _phone = TextEditingController();
 
   DateTime? _selectedDate;
   String? _selectedGender;
@@ -68,6 +69,7 @@ class _SignUpState extends State<SignUp> {
       await FirebaseFirestore.instance.collection('users').doc(userCredential.user!.uid).set({
         'name': _name.text.trim(),
         'email': _email.text.trim(),
+        'phone': _phone.text.trim().isNotEmpty ? _phone.text.trim() : null,
         'dateOfBirth': _selectedDate?.toIso8601String(),
         'age': calculatedAge ?? int.tryParse(_age.text),
         'gender': _selectedGender,
@@ -220,6 +222,30 @@ class _SignUpState extends State<SignUp> {
                           email != null && !EmailValidator.validate(email)
                               ? 'Enter a valid email'
                               : null,
+                        ),
+                        const SizedBox(height: 16),
+                        
+                        // Phone field (optional for password recovery)
+                        TextFormField(
+                          controller: _phone,
+                          keyboardType: TextInputType.phone,
+                          decoration: const InputDecoration(
+                            labelText: 'Phone Number (Optional)',
+                            prefixIcon: Icon(Icons.phone),
+                            hintText: '+1234567890',
+                            helperText: 'For password recovery via SMS',
+                          ),
+                          validator: (value) {
+                            if (value != null && value.isNotEmpty) {
+                              if (!value.startsWith('+')) {
+                                return 'Phone must start with country code (e.g., +1)';
+                              }
+                              if (value.length < 10) {
+                                return 'Enter a valid phone number';
+                              }
+                            }
+                            return null;
+                          },
                         ),
                         const SizedBox(height: 16),
                         

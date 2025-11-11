@@ -36,7 +36,8 @@ class ShoppingList {
   );
 }
 
-String userID = FirebaseAuth.instance.currentUser!.uid;
+// Get current user ID dynamically (not cached as global variable)
+String get userID => FirebaseAuth.instance.currentUser!.uid;
 
 //create ShoppingList
 Future<void> createShoppingList(ShoppingList shoppingList) async {

@@ -3,6 +3,7 @@ import 'package:cookbook/screens/home.dart';
 import 'package:cookbook/utils/utils.dart';
 import 'package:cookbook/utils/page_transitions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cookbook/utils/colors.dart';
@@ -103,11 +104,21 @@ class _LogInState extends State<LogIn> {
     setState(() => _isGoogleSigningIn = true);
 
     try {
-      // Sign out first to allow account selection
-      final GoogleSignIn googleSignIn = GoogleSignIn();
+      // Create a fresh GoogleSignIn instance to avoid cached credentials
+      final googleSignIn = GoogleSignIn(
+        scopes: ['email', 'profile'],
+      );
+      
+      // Aggressively clear any cached account
+      try {
+        await googleSignIn.disconnect();
+      } catch (e) {
+        // Disconnect may fail if not connected, that's okay
+        debugPrint('Disconnect error (expected): $e');
+      }
       await googleSignIn.signOut();
       
-      // Trigger the Google Sign-In flow
+      // Trigger the Google Sign-In flow - this should now show account picker
       final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
       
       if (googleUser == null) {
@@ -125,7 +136,26 @@ class _LogInState extends State<LogIn> {
       );
 
       // Sign in to Firebase with the Google credential
-      await FirebaseAuth.instance.signInWithCredential(credential);
+      final UserCredential userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
+      
+      // Check if user document exists in Firestore, if not create it
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userCredential.user!.uid)
+          .get();
+      
+      if (!userDoc.exists) {
+        // Create user document for new Google Sign-In users
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(userCredential.user!.uid)
+            .set({
+          'name': googleUser.displayName ?? 'User',
+          'email': googleUser.email,
+          'role': 'user',
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+      }
 
       if (!mounted) return;
       
@@ -146,97 +176,298 @@ class _LogInState extends State<LogIn> {
 
   Future<void> _showForgotPasswordDialog() async {
     final TextEditingController emailController = TextEditingController();
+    final TextEditingController phoneController = TextEditingController();
+    final TextEditingController codeController = TextEditingController();
     final formKey = GlobalKey<FormState>();
+    bool isEmailMode = true;
+    bool codeSent = false;
+    String verificationId = '';
 
     return showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(
-          'Reset Password',
-          style: GoogleFonts.poppins(
-            fontWeight: FontWeight.w600,
-            fontSize: 20,
-          ),
-        ),
-        content: Form(
-          key: formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Enter your email address and we\'ll send you a link to reset your password.',
-                style: GoogleFonts.poppins(fontSize: 14),
-              ),
-              const SizedBox(height: 20),
-              TextFormField(
-                controller: emailController,
-                keyboardType: TextInputType.emailAddress,
-                decoration: InputDecoration(
-                  labelText: 'Email Address',
-                  hintText: 'Enter your email',
-                  prefixIcon: const Icon(Icons.email_outlined),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter your email';
-                  }
-                  if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
-                    return 'Please enter a valid email';
-                  }
-                  return null;
-                },
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              if (formKey.currentState?.validate() ?? false) {
-                try {
-                  await FirebaseAuth.instance.sendPasswordResetEmail(
-                    email: emailController.text.trim(),
-                  );
-                  if (context.mounted) {
-                    Navigator.pop(context);
-                    utils.showSnackBar(
-                      'Password reset email sent! Check your inbox.',
-                      Colors.green,
-                    );
-                  }
-                } on FirebaseAuthException catch (e) {
-                  String message = 'Failed to send reset email';
-                  if (e.code == 'user-not-found') {
-                    message = 'No account found with this email';
-                  } else if (e.code == 'invalid-email') {
-                    message = 'Invalid email address';
-                  } else if (e.code == 'too-many-requests') {
-                    message = 'Too many requests. Please try again later';
-                  }
-                  utils.showSnackBar(message, Colors.red);
-                } catch (e) {
-                  utils.showSnackBar(
-                    'An error occurred. Please try again.',
-                    Colors.red,
-                  );
-                }
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: primaryColor,
-              foregroundColor: Colors.white,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: Text(
+            'Reset Password',
+            style: GoogleFonts.poppins(
+              fontWeight: FontWeight.w600,
+              fontSize: 20,
             ),
-            child: const Text('Send Reset Link'),
           ),
-        ],
+          content: Form(
+            key: formKey,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Toggle buttons for Email/Phone
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () {
+                            setState(() {
+                              isEmailMode = true;
+                              codeSent = false;
+                            });
+                          },
+                          style: OutlinedButton.styleFrom(
+                            backgroundColor: isEmailMode ? primaryColor : Colors.transparent,
+                            foregroundColor: isEmailMode ? Colors.white : primaryColor,
+                          ),
+                          child: const Text('Email'),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () {
+                            setState(() {
+                              isEmailMode = false;
+                              codeSent = false;
+                            });
+                          },
+                          style: OutlinedButton.styleFrom(
+                            backgroundColor: !isEmailMode ? primaryColor : Colors.transparent,
+                            foregroundColor: !isEmailMode ? Colors.white : primaryColor,
+                          ),
+                          child: const Text('Phone'),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  // Email Mode
+                  if (isEmailMode) ...[
+                    Text(
+                      'Enter your email address and we\'ll send you a link to reset your password.',
+                      style: GoogleFonts.poppins(fontSize: 14),
+                    ),
+                    const SizedBox(height: 20),
+                    TextFormField(
+                      controller: emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      decoration: InputDecoration(
+                        labelText: 'Email Address',
+                        hintText: 'Enter your email',
+                        prefixIcon: const Icon(Icons.email_outlined),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter your email';
+                        }
+                        if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                          return 'Please enter a valid email';
+                        }
+                        return null;
+                      },
+                    ),
+                  ],
+                  
+                  // Phone Mode
+                  if (!isEmailMode) ...[
+                    Text(
+                      codeSent 
+                        ? 'Enter the verification code sent to your phone.'
+                        : 'Enter your phone number to receive a verification code.',
+                      style: GoogleFonts.poppins(fontSize: 14),
+                    ),
+                    const SizedBox(height: 20),
+                    if (!codeSent)
+                      TextFormField(
+                        controller: phoneController,
+                        keyboardType: TextInputType.phone,
+                        decoration: InputDecoration(
+                          labelText: 'Phone Number',
+                          hintText: '+1234567890',
+                          prefixIcon: const Icon(Icons.phone_outlined),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter your phone number';
+                          }
+                          if (!value.startsWith('+')) {
+                            return 'Phone must start with country code (e.g., +1)';
+                          }
+                          if (value.length < 10) {
+                            return 'Please enter a valid phone number';
+                          }
+                          return null;
+                        },
+                      ),
+                    if (codeSent)
+                      TextFormField(
+                        controller: codeController,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          labelText: 'Verification Code',
+                          hintText: '123456',
+                          prefixIcon: const Icon(Icons.lock_outline),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter the code';
+                          }
+                          if (value.length != 6) {
+                            return 'Code must be 6 digits';
+                          }
+                          return null;
+                        },
+                      ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                if (formKey.currentState?.validate() ?? false) {
+                  if (isEmailMode) {
+                    // Email reset logic
+                    try {
+                      await FirebaseAuth.instance.sendPasswordResetEmail(
+                        email: emailController.text.trim(),
+                      );
+                      if (context.mounted) {
+                        Navigator.pop(context);
+                        utils.showSnackBar(
+                          'Password reset email sent! Check your inbox.',
+                          Colors.green,
+                        );
+                      }
+                    } on FirebaseAuthException catch (e) {
+                      String message = 'Failed to send reset email';
+                      if (e.code == 'user-not-found') {
+                        message = 'No account found with this email';
+                      } else if (e.code == 'invalid-email') {
+                        message = 'Invalid email address';
+                      } else if (e.code == 'too-many-requests') {
+                        message = 'Too many requests. Please try again later';
+                      }
+                      utils.showSnackBar(message, Colors.red);
+                    } catch (e) {
+                      utils.showSnackBar(
+                        'An error occurred. Please try again.',
+                        Colors.red,
+                      );
+                    }
+                  } else {
+                    // Phone reset logic
+                    if (!codeSent) {
+                      // Send verification code
+                      try {
+                        await FirebaseAuth.instance.verifyPhoneNumber(
+                          phoneNumber: phoneController.text.trim(),
+                          verificationCompleted: (PhoneAuthCredential credential) async {
+                            // Auto-verification (Android only)
+                          },
+                          verificationFailed: (FirebaseAuthException e) {
+                            utils.showSnackBar(
+                              e.message ?? 'Verification failed',
+                              Colors.red,
+                            );
+                          },
+                          codeSent: (String verId, int? resendToken) {
+                            setState(() {
+                              codeSent = true;
+                              verificationId = verId;
+                            });
+                            utils.showSnackBar(
+                              'Verification code sent!',
+                              Colors.green,
+                            );
+                          },
+                          codeAutoRetrievalTimeout: (String verId) {
+                            verificationId = verId;
+                          },
+                          timeout: const Duration(seconds: 60),
+                        );
+                      } catch (e) {
+                        utils.showSnackBar(
+                          'Failed to send code. Please try again.',
+                          Colors.red,
+                        );
+                      }
+                    } else {
+                      // Verify code and find user
+                      try {
+                        PhoneAuthCredential credential = PhoneAuthProvider.credential(
+                          verificationId: verificationId,
+                          smsCode: codeController.text.trim(),
+                        );
+                        
+                        // Find user by phone number in Firestore
+                        final usersSnapshot = await FirebaseFirestore.instance
+                            .collection('users')
+                            .where('phone', isEqualTo: phoneController.text.trim())
+                            .limit(1)
+                            .get();
+                        
+                        if (usersSnapshot.docs.isEmpty) {
+                          utils.showSnackBar(
+                            'No account found with this phone number',
+                            Colors.red,
+                          );
+                          return;
+                        }
+                        
+                        final userEmail = usersSnapshot.docs.first.get('email');
+                        
+                        // Send password reset email
+                        await FirebaseAuth.instance.sendPasswordResetEmail(
+                          email: userEmail,
+                        );
+                        
+                        if (context.mounted) {
+                          Navigator.pop(context);
+                          utils.showSnackBar(
+                            'Password reset link sent to your email!',
+                            Colors.green,
+                          );
+                        }
+                      } on FirebaseAuthException catch (e) {
+                        utils.showSnackBar(
+                          e.message ?? 'Invalid verification code',
+                          Colors.red,
+                        );
+                      } catch (e) {
+                        utils.showSnackBar(
+                          'An error occurred. Please try again.',
+                          Colors.red,
+                        );
+                      }
+                    }
+                  }
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primaryColor,
+                foregroundColor: Colors.white,
+              ),
+              child: Text(
+                isEmailMode 
+                  ? 'Send Reset Link' 
+                  : (codeSent ? 'Verify Code' : 'Send Code'),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

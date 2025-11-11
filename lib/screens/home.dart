@@ -30,7 +30,9 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _getUserRecipeCount() async {
     userRecipeCount = await countUserRecipes();
-    setState(() {});
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   @override

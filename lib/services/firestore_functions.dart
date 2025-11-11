@@ -3,7 +3,8 @@ import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:cookbook/models/recipe.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
-String userID = FirebaseAuth.instance.currentUser!.uid;
+
+String get userID => FirebaseAuth.instance.currentUser!.uid;
 
 //create recipe
 Future<void> createRecipe(Recipe recipe) async {
