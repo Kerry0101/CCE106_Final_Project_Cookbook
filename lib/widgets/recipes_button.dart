@@ -5,6 +5,7 @@ import 'package:cookbook/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class RecipesButton extends StatefulWidget {
   final Recipe recipe;
@@ -21,12 +22,33 @@ class RecipesButton extends StatefulWidget {
 class _RecipesButtonState extends State<RecipesButton> {
   late bool isFavorite;
   Utils utils = Utils();
+  String? authorName;
 
   @override
   void initState() {
     super.initState();
-
     isFavorite = widget.recipe.isFavorite;
+    _loadAuthorName();
+  }
+
+  Future<void> _loadAuthorName() async {
+    try {
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(widget.recipe.userID)
+          .get();
+      if (mounted) {
+        setState(() {
+          authorName = userDoc.data()?['name'] ?? 'Unknown User';
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          authorName = 'Unknown User';
+        });
+      }
+    }
   }
 
   @override
@@ -46,7 +68,7 @@ class _RecipesButtonState extends State<RecipesButton> {
         children: [
           Container(
             width: 100,
-            height: 100,
+            height: 120,
             decoration: BoxDecoration(
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(20),
@@ -64,7 +86,7 @@ class _RecipesButtonState extends State<RecipesButton> {
                   ? Image.network(
                       widget.recipe.imageUrl!,
                       width: 100,
-                      height: 100,
+                      height: 120,
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) {
                         return Container(
@@ -98,7 +120,7 @@ class _RecipesButtonState extends State<RecipesButton> {
           ),
           Expanded(
             child: Container(
-              height: 100,
+              height: 120,
               decoration: BoxDecoration(
                 borderRadius: const BorderRadius.only(
                   bottomRight: Radius.circular(20),
@@ -135,7 +157,7 @@ class _RecipesButtonState extends State<RecipesButton> {
                         ),
                       ),
                       Padding(
-                        padding: const EdgeInsets.fromLTRB(8, 0, 8, 5),
+                        padding: const EdgeInsets.fromLTRB(8, 0, 8, 4),
                         child: Text(
                           widget.recipe.category,
                           style: GoogleFonts.lato(
@@ -144,6 +166,29 @@ class _RecipesButtonState extends State<RecipesButton> {
                           ),
                         ),
                       ),
+                      if (authorName != null)
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(8, 0, 8, 4),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.person,
+                                size: 12,
+                                color: Colors.grey,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                'by $authorName',
+                                style: GoogleFonts.lato(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.normal,
+                                  color: Colors.grey[600],
+                                  fontStyle: FontStyle.italic,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       Padding(
                         padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
                         child: IgnorePointer(

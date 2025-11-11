@@ -103,8 +103,12 @@ class _LogInState extends State<LogIn> {
     setState(() => _isGoogleSigningIn = true);
 
     try {
+      // Sign out first to allow account selection
+      final GoogleSignIn googleSignIn = GoogleSignIn();
+      await googleSignIn.signOut();
+      
       // Trigger the Google Sign-In flow
-      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+      final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
       
       if (googleUser == null) {
         // User canceled the sign-in
@@ -138,6 +142,103 @@ class _LogInState extends State<LogIn> {
     } finally {
       if (mounted) setState(() => _isGoogleSigningIn = false);
     }
+  }
+
+  Future<void> _showForgotPasswordDialog() async {
+    final TextEditingController emailController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
+    return showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          'Reset Password',
+          style: GoogleFonts.poppins(
+            fontWeight: FontWeight.w600,
+            fontSize: 20,
+          ),
+        ),
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Enter your email address and we\'ll send you a link to reset your password.',
+                style: GoogleFonts.poppins(fontSize: 14),
+              ),
+              const SizedBox(height: 20),
+              TextFormField(
+                controller: emailController,
+                keyboardType: TextInputType.emailAddress,
+                decoration: InputDecoration(
+                  labelText: 'Email Address',
+                  hintText: 'Enter your email',
+                  prefixIcon: const Icon(Icons.email_outlined),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter your email';
+                  }
+                  if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                    return 'Please enter a valid email';
+                  }
+                  return null;
+                },
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (formKey.currentState?.validate() ?? false) {
+                try {
+                  await FirebaseAuth.instance.sendPasswordResetEmail(
+                    email: emailController.text.trim(),
+                  );
+                  if (context.mounted) {
+                    Navigator.pop(context);
+                    utils.showSnackBar(
+                      'Password reset email sent! Check your inbox.',
+                      Colors.green,
+                    );
+                  }
+                } on FirebaseAuthException catch (e) {
+                  String message = 'Failed to send reset email';
+                  if (e.code == 'user-not-found') {
+                    message = 'No account found with this email';
+                  } else if (e.code == 'invalid-email') {
+                    message = 'Invalid email address';
+                  } else if (e.code == 'too-many-requests') {
+                    message = 'Too many requests. Please try again later';
+                  }
+                  utils.showSnackBar(message, Colors.red);
+                } catch (e) {
+                  utils.showSnackBar(
+                    'An error occurred. Please try again.',
+                    Colors.red,
+                  );
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: primaryColor,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Send Reset Link'),
+          ),
+        ],
+      ),
+    );
   }
 
 
@@ -209,7 +310,10 @@ class _LogInState extends State<LogIn> {
                             Checkbox(value: rememberMe, onChanged: (v) => setState(() => rememberMe = v ?? false)),
                             const Text('Remember me'),
                             const Spacer(),
-                            TextButton(onPressed: () {}, child: const Text('Forgot password?')),
+                            TextButton(
+                              onPressed: _showForgotPasswordDialog,
+                              child: const Text('Forgot password?'),
+                            ),
                           ],
                         ),
                         const SizedBox(height: 18),

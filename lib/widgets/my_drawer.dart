@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cookbook/screens/favorites.dart';
+import 'package:cookbook/screens/home.dart';
 import 'package:cookbook/screens/my_recipes_page.dart';
 import 'package:cookbook/screens/recipes/recipe_create.dart';
 import 'package:cookbook/screens/shopping_lists.dart';
@@ -80,6 +81,22 @@ Widget buildDrawer(BuildContext context) {
                   ),
                 ),
               ],
+            ),
+            ListTile(
+              leading: Icon(
+                Icons.explore,
+                color: primaryColor,
+              ),
+              title: Text(
+                'Browse All Recipes',
+                style: GoogleFonts.lato(),
+              ),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const HomePage()),
+                );
+              },
             ),
             ListTile(
               leading: Icon(

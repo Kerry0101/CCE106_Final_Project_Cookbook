@@ -271,7 +271,7 @@ class _SignUpState extends State<SignUp> {
                         
                         // Gender field
                         DropdownButtonFormField<String>(
-                          value: _selectedGender,
+                          initialValue: _selectedGender,
                           decoration: const InputDecoration(
                             labelText: 'Gender',
                             prefixIcon: Icon(Icons.person_outline),

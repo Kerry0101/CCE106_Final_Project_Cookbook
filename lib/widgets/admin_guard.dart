@@ -6,7 +6,7 @@ import 'package:cookbook/screens/home.dart';
 class AdminGuard extends StatelessWidget {
   final Widget child;
 
-  const AdminGuard({Key? key, required this.child}) : super(key: key);
+  const AdminGuard({super.key, required this.child});
 
   @override
   Widget build(BuildContext context) {

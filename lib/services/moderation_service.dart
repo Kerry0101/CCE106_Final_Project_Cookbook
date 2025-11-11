@@ -41,6 +41,19 @@ class ModerationService {
   // Approve a recipe
   static Future<void> approveRecipe(
       String recipeId, String category, String adminUid) async {
+    // Fetch recipe to check author
+    final recipeDoc = await FirebaseFirestore.instance
+        .collection('recipes')
+        .doc(recipeId)
+        .get();
+    
+    final authorUid = recipeDoc.data()?['userID'];
+    
+    // Prevent self-approval
+    if (authorUid == adminUid) {
+      throw Exception('You cannot approve your own recipes. Another admin must approve them.');
+    }
+    
     await FirebaseFirestore.instance
         .collection('recipes')
         .doc(recipeId)

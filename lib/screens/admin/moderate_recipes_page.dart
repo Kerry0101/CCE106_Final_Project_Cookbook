@@ -8,7 +8,7 @@ import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class ModerateRecipesPage extends StatefulWidget {
-  const ModerateRecipesPage({Key? key}) : super(key: key);
+  const ModerateRecipesPage({super.key});
 
   @override
   State<ModerateRecipesPage> createState() => _ModerateRecipesPageState();
@@ -403,7 +403,7 @@ class _ModerateRecipesPageState extends State<ModerateRecipesPage> with SingleTi
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
-                value: selectedCategory,
+                initialValue: selectedCategory,
                 decoration: InputDecoration(
                   labelText: 'Category',
                   border: OutlineInputBorder(
@@ -432,20 +432,33 @@ class _ModerateRecipesPageState extends State<ModerateRecipesPage> with SingleTi
             ElevatedButton(
               onPressed: () async {
                 if (selectedCategory != null) {
-                  final adminUid = FirebaseAuth.instance.currentUser!.uid;
-                  await ModerationService.approveRecipe(
-                    recipe.recipeID,
-                    selectedCategory!,
-                    adminUid,
-                  );
-                  if (context.mounted) {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Recipe approved as $selectedCategory'),
-                        backgroundColor: Colors.green,
-                      ),
+                  try {
+                    final adminUid = FirebaseAuth.instance.currentUser!.uid;
+                    await ModerationService.approveRecipe(
+                      recipe.recipeID,
+                      selectedCategory!,
+                      adminUid,
                     );
+                    if (context.mounted) {
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Recipe approved as $selectedCategory'),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(e.toString().replaceAll('Exception: ', '')),
+                          backgroundColor: Colors.red,
+                          duration: const Duration(seconds: 4),
+                        ),
+                      );
+                    }
                   }
                 }
               },
