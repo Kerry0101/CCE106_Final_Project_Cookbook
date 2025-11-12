@@ -82,26 +82,93 @@ Future<num> countUserRecipes() async {
   return querySnapshot.size;
 }
 
-//update isFavorite field
+//update isFavorite field - user-specific favorites
 Future<void> updateIsFavorite(String recipeId, bool isFavorite) async {
   try {
-    final docRecipe = FirebaseFirestore.instance.collection('recipes').doc(recipeId);
-    await docRecipe.update({'isFavorite': isFavorite});
-  debugPrint('isFavorite updated successfully');
+    final currentUserId = userID;
+    final userFavoriteRef = FirebaseFirestore.instance
+        .collection('users')
+        .doc(currentUserId)
+        .collection('favorites')
+        .doc(recipeId);
+    
+    if (isFavorite) {
+      // Add to favorites
+      await userFavoriteRef.set({
+        'recipeId': recipeId,
+        'addedAt': FieldValue.serverTimestamp(),
+      });
+      debugPrint('Recipe added to user favorites');
+    } else {
+      // Remove from favorites
+      await userFavoriteRef.delete();
+      debugPrint('Recipe removed from user favorites');
+    }
   } catch (e) {
-  debugPrint('Error updating isFavorite: $e');
+    debugPrint('Error updating isFavorite: $e');
     // Handle error accordingly
   }
 }
 
-//read recipe favorites
+//read recipe favorites - user-specific
 Stream<List<Recipe>> readAllFavorites() {
-  Query<Map<String, dynamic>> query = FirebaseFirestore.instance
-      .collection('recipes')
-      .where('isFavorite', isEqualTo: true);
+  final currentUserId = userID;
+  
+  // Get user's favorite recipe IDs
+  return FirebaseFirestore.instance
+      .collection('users')
+      .doc(currentUserId)
+      .collection('favorites')
+      .snapshots()
+      .asyncMap((favSnapshot) async {
+    if (favSnapshot.docs.isEmpty) {
+      return <Recipe>[];
+    }
+    
+    // Get all favorite recipe IDs
+    final favoriteIds = favSnapshot.docs.map((doc) => doc.id).toList();
+    
+    // Fetch all recipes that are in the favorites list
+    final recipesSnapshot = await FirebaseFirestore.instance
+        .collection('recipes')
+        .where(FieldPath.documentId, whereIn: favoriteIds)
+        .get();
+    
+    return recipesSnapshot.docs
+        .map((doc) => Recipe.fromJson(doc.data()))
+        .toList();
+  });
+}
 
-  return query.snapshots().map((snapshot) =>
-      snapshot.docs.map((doc) => Recipe.fromJson(doc.data())).toList());
+//check if recipe is favorited by current user
+Future<bool> isRecipeFavorited(String recipeId) async {
+  try {
+    final currentUserId = userID;
+    final doc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(currentUserId)
+        .collection('favorites')
+        .doc(recipeId)
+        .get();
+    
+    return doc.exists;
+  } catch (e) {
+    debugPrint('Error checking if recipe is favorited: $e');
+    return false;
+  }
+}
+
+//stream to check if recipe is favorited by current user
+Stream<bool> isRecipeFavoritedStream(String recipeId) {
+  final currentUserId = userID;
+  
+  return FirebaseFirestore.instance
+      .collection('users')
+      .doc(currentUserId)
+      .collection('favorites')
+      .doc(recipeId)
+      .snapshots()
+      .map((doc) => doc.exists);
 }
 
 //get user details
@@ -111,6 +178,101 @@ Stream<DocumentSnapshot<Map<String, dynamic>>> getUserDetails(String userID) {
       .doc(userID);
 
   return userRef.snapshots();
+}
+
+//submit category suggestion
+Future<void> submitCategorySuggestion(String categoryName, String categoryDescription) async {
+  try {
+    final docCategory = FirebaseFirestore.instance.collection('category_suggestions').doc();
+    
+    await docCategory.set({
+      'id': docCategory.id,
+      'categoryName': categoryName,
+      'description': categoryDescription,
+      'suggestedBy': userID,
+      'status': 'pending', // 'pending', 'approved', 'rejected'
+      'submittedAt': FieldValue.serverTimestamp(),
+      'reviewedAt': null,
+      'reviewedBy': null,
+      'rejectionReason': null,
+    });
+    
+    debugPrint('Category suggestion submitted successfully');
+  } catch (e) {
+    debugPrint('Error submitting category suggestion: $e');
+    rethrow;
+  }
+}
+
+//read all category suggestions (for admin)
+Stream<List<Map<String, dynamic>>> readCategorySuggestions({String? status}) {
+  Query<Map<String, dynamic>> query = FirebaseFirestore.instance
+      .collection('category_suggestions')
+      .orderBy('submittedAt', descending: true);
+  
+  if (status != null && status.isNotEmpty) {
+    query = query.where('status', isEqualTo: status);
+  }
+  
+  return query.snapshots().map((snapshot) {
+    return snapshot.docs.map((doc) => doc.data()).toList();
+  });
+}
+
+//approve category suggestion
+Future<void> approveCategorySuggestion(String suggestionId) async {
+  try {
+    final docCategory = FirebaseFirestore.instance
+        .collection('category_suggestions')
+        .doc(suggestionId);
+    
+    await docCategory.update({
+      'status': 'approved',
+      'reviewedAt': FieldValue.serverTimestamp(),
+      'reviewedBy': userID,
+    });
+    
+    debugPrint('Category suggestion approved');
+  } catch (e) {
+    debugPrint('Error approving category suggestion: $e');
+    rethrow;
+  }
+}
+
+//reject category suggestion
+Future<void> rejectCategorySuggestion(String suggestionId, String reason) async {
+  try {
+    final docCategory = FirebaseFirestore.instance
+        .collection('category_suggestions')
+        .doc(suggestionId);
+    
+    await docCategory.update({
+      'status': 'rejected',
+      'reviewedAt': FieldValue.serverTimestamp(),
+      'reviewedBy': userID,
+      'rejectionReason': reason,
+    });
+    
+    debugPrint('Category suggestion rejected');
+  } catch (e) {
+    debugPrint('Error rejecting category suggestion: $e');
+    rethrow;
+  }
+}
+
+//count pending category suggestions
+Future<int> countPendingCategorySuggestions() async {
+  try {
+    final snapshot = await FirebaseFirestore.instance
+        .collection('category_suggestions')
+        .where('status', isEqualTo: 'pending')
+        .get();
+    
+    return snapshot.docs.length;
+  } catch (e) {
+    debugPrint('Error counting pending category suggestions: $e');
+    return 0;
+  }
 }
 
 

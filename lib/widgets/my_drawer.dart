@@ -12,6 +12,7 @@ import 'package:cookbook/screens/my_recipes_page.dart';
 import 'package:cookbook/screens/recipes/recipe_create.dart';
 import 'package:cookbook/screens/shopping_lists.dart';
 import 'package:cookbook/screens/admin/moderate_recipes_page.dart';
+import 'package:cookbook/screens/admin/review_categories.dart';
 import 'package:cookbook/utils/colors.dart';
 
 Widget buildDrawer(BuildContext context) {
@@ -191,7 +192,7 @@ Widget buildDrawer(BuildContext context) {
                           color: primaryColor,
                         ),
                         title: Text(
-                          'Moderate Recipes',
+                          'Review Recipes',
                           style: GoogleFonts.lato(),
                         ),
                         trailing: StreamBuilder<int>(
@@ -222,6 +223,47 @@ Widget buildDrawer(BuildContext context) {
                             context,
                             MaterialPageRoute(
                               builder: (context) => const ModerateRecipesPage(),
+                            ),
+                          );
+                        },
+                      ),
+                      ListTile(
+                        leading: Icon(
+                          Icons.category,
+                          color: primaryColor,
+                        ),
+                        title: Text(
+                          'Review Categories',
+                          style: GoogleFonts.lato(),
+                        ),
+                        trailing: StreamBuilder<int>(
+                          stream: countPendingCategorySuggestions().asStream(),
+                          builder: (context, countSnapshot) {
+                            if (countSnapshot.hasData && countSnapshot.data! > 0) {
+                              return Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: const BoxDecoration(
+                                  color: Colors.red,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Text(
+                                  '${countSnapshot.data}',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              );
+                            }
+                            return const SizedBox.shrink();
+                          },
+                        ),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const ReviewCategoriesScreen(),
                             ),
                           );
                         },

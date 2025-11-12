@@ -370,10 +370,28 @@ class _LogInState extends State<LogIn> {
                   } else {
                     // Phone reset logic
                     if (!codeSent) {
-                      // Send verification code
+                      // First, check if phone number exists in database
                       try {
+                        final phoneNumber = phoneController.text.trim();
+                        
+                        // Query Firestore to check if phone number exists
+                        final usersSnapshot = await FirebaseFirestore.instance
+                            .collection('users')
+                            .where('phone', isEqualTo: phoneNumber)
+                            .limit(1)
+                            .get();
+                        
+                        if (usersSnapshot.docs.isEmpty) {
+                          utils.showSnackBar(
+                            'No account found with this phone number. Please check and try again.',
+                            Colors.red,
+                          );
+                          return;
+                        }
+                        
+                        // Phone number exists, now send verification code
                         await FirebaseAuth.instance.verifyPhoneNumber(
-                          phoneNumber: phoneController.text.trim(),
+                          phoneNumber: phoneNumber,
                           verificationCompleted: (PhoneAuthCredential credential) async {
                             // Auto-verification (Android only)
                           },
@@ -389,7 +407,7 @@ class _LogInState extends State<LogIn> {
                               verificationId = verId;
                             });
                             utils.showSnackBar(
-                              'Verification code sent!',
+                              'Verification code sent to your phone!',
                               Colors.green,
                             );
                           },
@@ -400,7 +418,7 @@ class _LogInState extends State<LogIn> {
                         );
                       } catch (e) {
                         utils.showSnackBar(
-                          'Failed to send code. Please try again.',
+                          'Failed to verify phone number. Please try again.',
                           Colors.red,
                         );
                       }

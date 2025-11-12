@@ -48,7 +48,7 @@ class _ModerateRecipesPageState extends State<ModerateRecipesPage> with SingleTi
       child: Scaffold(
         appBar: AppBar(
           title: Text(
-            'Moderate Recipes',
+            'Review Recipes',
             style: GoogleFonts.poppins(
               fontSize: 20,
               fontWeight: FontWeight.w600,

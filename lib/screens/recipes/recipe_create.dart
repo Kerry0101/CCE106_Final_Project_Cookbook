@@ -36,7 +36,6 @@ class _recipeCreateState extends State<recipeCreate> {
 
   PlatformFile? pickedFile;
   String? _recipeSelectedCategory;
-  bool isFavorite = false;
 
   Utils utils = Utils();
 
@@ -113,7 +112,6 @@ class _recipeCreateState extends State<recipeCreate> {
                     tag: _recipeTag.text,
                     ingredients: _recipeIngredients,
                     directions: _recipeDirections,
-                    isFavorite: isFavorite,
                     imageUrl: imageUrl,
                   );
 
@@ -357,7 +355,6 @@ class _recipeCreateState extends State<recipeCreate> {
                       tag: _recipeTag.text,
                       ingredients: _recipeIngredients,
                       directions: _recipeDirections,
-                      isFavorite: isFavorite,
                       imageUrl: imageUrl,
                     );
 

@@ -10,7 +10,6 @@ class Recipe {
   final String tag;
   final List<String> ingredients;
   final List<String> directions;
-  bool isFavorite;
   String? imageUrl;
   String status; // 'pending', 'approved', 'rejected'
   DateTime? submittedAt;
@@ -30,7 +29,6 @@ class Recipe {
     required this.tag,
     required this.ingredients,
     required this.directions,
-    required this.isFavorite,
     this.imageUrl,
     this.status = 'pending',
     this.submittedAt,
@@ -52,7 +50,6 @@ class Recipe {
       'tag': tag,
       'ingredients': ingredients,
       'directions': directions,
-      'isFavorite': isFavorite,
       'imageUrl': imageUrl,
       'status': status,
       'submittedAt': submittedAt,
@@ -74,7 +71,6 @@ class Recipe {
     tag: json['tag'] ?? '',
     ingredients: List<String>.from(json['ingredients'] ?? []),
     directions: List<String>.from(json['directions'] ?? []),
-    isFavorite: json['isFavorite'] ?? false,
     imageUrl: json['imageUrl'],
     status: json['status'] ?? 'pending',
     submittedAt: json['submittedAt'] != null 

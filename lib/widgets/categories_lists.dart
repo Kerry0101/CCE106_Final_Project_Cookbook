@@ -1,12 +1,18 @@
-import 'package:cookbook/utils/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class CategoriesList extends StatefulWidget {
   final String imageUrl, labelText;
+  final bool isSelected;
+  final VoidCallback onTap;
 
-  const CategoriesList(
-      {super.key, required this.imageUrl, required this.labelText});
+  const CategoriesList({
+    super.key,
+    required this.imageUrl,
+    required this.labelText,
+    this.isSelected = false,
+    required this.onTap,
+  });
 
   @override
   State<CategoriesList> createState() => _CategoriesListState();
@@ -16,30 +22,62 @@ class _CategoriesListState extends State<CategoriesList> {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () {
-  debugPrint('Tapped on ${widget.labelText}');
-      },
+      onTap: widget.onTap,
       child: Container(
-        color: p_color,
-        child: Padding(
-          padding: const EdgeInsets.only(left: 10.0, right: 10.0),
-          child: Column(
-            children: [
-              ClipRRect(
+        margin: const EdgeInsets.symmetric(horizontal: 6),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: widget.isSelected
+                    ? Border.all(
+                        color: const Color(0xFF008B8B),
+                        width: 3,
+                      )
+                    : null,
+                boxShadow: [
+                  BoxShadow(
+                    color: widget.isSelected
+                        ? const Color(0xFF008B8B).withOpacity(0.4)
+                        : Colors.black.withOpacity(0.1),
+                    blurRadius: widget.isSelected ? 12 : 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: ClipRRect(
                 borderRadius: BorderRadius.circular(100),
                 child: SizedBox(
-                  height: 100,
-                  width: 100,
-                  child: Image.asset(widget.imageUrl),
+                  height: 60,
+                  width: 60,
+                  child: Image.asset(
+                    widget.imageUrl,
+                    fit: BoxFit.cover,
+                  ),
                 ),
               ),
-              Text(
+            ),
+            const SizedBox(height: 4),
+            SizedBox(
+              width: 70,
+              child: Text(
                 widget.labelText,
-                style:
-                GoogleFonts.lato(fontSize: 12, fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
+                style: GoogleFonts.poppins(
+                  fontSize: 9,
+                  fontWeight: widget.isSelected ? FontWeight.w700 : FontWeight.w600,
+                  color: widget.isSelected
+                      ? const Color(0xFF008B8B)
+                      : Colors.black87,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

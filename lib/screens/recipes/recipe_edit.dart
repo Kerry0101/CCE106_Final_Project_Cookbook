@@ -43,7 +43,6 @@ class _recipeEditState extends State<recipeEdit> {
   String? _pickedImage;
   double _recipeRating = 0;
   String? _recipeSelectedCategory;
-  late bool isFavorite;
 
   Utils utils = Utils();
 
@@ -94,7 +93,6 @@ class _recipeEditState extends State<recipeEdit> {
     _recipeRating = widget.recipe.rating;
     _recipeIngredients = widget.recipe.ingredients;
     _recipeDirections = widget.recipe.directions;
-    isFavorite = widget.recipe.isFavorite;
     _pickedImage = widget.recipe.imageUrl;
   }
 
@@ -129,7 +127,6 @@ class _recipeEditState extends State<recipeEdit> {
                     tag: _recipeTag.text,
                     ingredients: _recipeIngredients,
                     directions: _recipeDirections,
-                    isFavorite: isFavorite,
                     imageUrl: imageUrl ?? widget.recipe.imageUrl,
                   );
                   await updateRecipe(recipe, recipe.recipeID);
@@ -364,7 +361,6 @@ class _recipeEditState extends State<recipeEdit> {
                       tag: _recipeTag.text,
                       ingredients: _recipeIngredients,
                       directions: _recipeDirections,
-                      isFavorite: isFavorite,
                       imageUrl: imageUrl ?? widget.recipe.imageUrl,
                     );
                     await updateRecipe(recipe, recipe.recipeID);
