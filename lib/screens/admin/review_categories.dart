@@ -12,277 +12,337 @@ class ReviewCategoriesScreen extends StatefulWidget {
   State<ReviewCategoriesScreen> createState() => _ReviewCategoriesScreenState();
 }
 
-class _ReviewCategoriesScreenState extends State<ReviewCategoriesScreen> {
-  String _selectedStatus = 'pending';
+class _ReviewCategoriesScreenState extends State<ReviewCategoriesScreen> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 3, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: primaryColor,
         title: Text(
-          'Review Category Suggestions',
-          style: GoogleFonts.montserrat(
-            fontWeight: FontWeight.w700,
-            color: Colors.white,
+          'Review Categories',
+          style: GoogleFonts.poppins(
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
           ),
         ),
-        iconTheme: const IconThemeData(color: Colors.white),
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: const [
+            Tab(text: 'Pending', icon: Icon(Icons.hourglass_empty)),
+            Tab(text: 'Approved', icon: Icon(Icons.check_circle)),
+            Tab(text: 'Rejected', icon: Icon(Icons.cancel)),
+          ],
+          labelColor: textColor1,
+          unselectedLabelColor: textColor1.withOpacity(0.5),
+          indicatorColor: bgc1,
+        ),
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [bgc1, bgc2, bgc3, bgc4],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
       ),
-      body: Column(
+      body: TabBarView(
+        controller: _tabController,
         children: [
-          // Status Filter Tabs
-          Container(
-            color: Colors.grey[100],
-            child: Row(
-              children: [
-                _buildStatusTab('pending', 'Pending'),
-                _buildStatusTab('approved', 'Approved'),
-                _buildStatusTab('rejected', 'Rejected'),
-              ],
-            ),
-          ),
-
-          // Category Suggestions List
-          Expanded(
-            child: StreamBuilder<List<Map<String, dynamic>>>(
-              stream: readCategorySuggestions(status: _selectedStatus),
-              builder: (context, snapshot) {
-                if (snapshot.hasError) {
-                  return Center(
-                    child: Text(
-                      'Error: ${snapshot.error}',
-                      style: GoogleFonts.poppins(color: Colors.red),
-                    ),
-                  );
-                }
-
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-
-                final suggestions = snapshot.data ?? [];
-
-                if (suggestions.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.category_outlined,
-                          size: 64,
-                          color: Colors.grey[400],
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'No ${_selectedStatus} suggestions',
-                          style: GoogleFonts.montserrat(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.grey,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }
-
-                return ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: suggestions.length,
-                  itemBuilder: (context, index) {
-                    final suggestion = suggestions[index];
-                    return _buildSuggestionCard(suggestion);
-                  },
-                );
-              },
-            ),
-          ),
+          _buildPendingTab(),
+          _buildApprovedTab(),
+          _buildRejectedTab(),
         ],
       ),
     );
   }
 
-  Widget _buildStatusTab(String status, String label) {
-    final isSelected = _selectedStatus == status;
-    return Expanded(
-      child: InkWell(
-        onTap: () {
-          setState(() {
-            _selectedStatus = status;
-          });
-        },
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          decoration: BoxDecoration(
-            color: isSelected ? primaryColor : Colors.transparent,
-            border: Border(
-              bottom: BorderSide(
-                color: isSelected ? primaryColor : Colors.grey[300]!,
-                width: isSelected ? 3 : 1,
-              ),
+  Widget _buildPendingTab() {
+    return StreamBuilder<List<Map<String, dynamic>>>(
+      stream: readCategorySuggestions(status: 'pending'),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        }
+
+        final suggestions = snapshot.data ?? [];
+
+        if (suggestions.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.inbox, size: 64, color: textColor1.withOpacity(0.3)),
+                const SizedBox(height: 16),
+                Text(
+                  'No pending suggestions',
+                  style: GoogleFonts.poppins(
+                    fontSize: 16,
+                    color: textColor1.withOpacity(0.5),
+                  ),
+                ),
+              ],
             ),
-          ),
-          child: Text(
-            label,
-            textAlign: TextAlign.center,
-            style: GoogleFonts.montserrat(
-              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
-              color: isSelected ? Colors.white : Colors.grey[600],
-            ),
-          ),
-        ),
-      ),
+          );
+        }
+
+        return ListView.builder(
+          itemCount: suggestions.length,
+          padding: const EdgeInsets.all(8),
+          itemBuilder: (context, index) {
+            return _buildSuggestionCard(suggestions[index], isPending: true);
+          },
+        );
+      },
     );
   }
 
-  Widget _buildSuggestionCard(Map<String, dynamic> suggestion) {
+  Widget _buildApprovedTab() {
+    return StreamBuilder<List<Map<String, dynamic>>>(
+      stream: readCategorySuggestions(status: 'approved'),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        }
+
+        final suggestions = snapshot.data ?? [];
+
+        if (suggestions.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.check_circle_outline, size: 64, color: textColor1.withOpacity(0.3)),
+                const SizedBox(height: 16),
+                Text(
+                  'No approved suggestions',
+                  style: GoogleFonts.poppins(
+                    fontSize: 16,
+                    color: textColor1.withOpacity(0.5),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        return ListView.builder(
+          itemCount: suggestions.length,
+          padding: const EdgeInsets.all(8),
+          itemBuilder: (context, index) {
+            return _buildSuggestionCard(suggestions[index], isPending: false);
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildRejectedTab() {
+    return StreamBuilder<List<Map<String, dynamic>>>(
+      stream: readCategorySuggestions(status: 'rejected'),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        }
+
+        final suggestions = snapshot.data ?? [];
+
+        if (suggestions.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.cancel_outlined, size: 64, color: textColor1.withOpacity(0.3)),
+                const SizedBox(height: 16),
+                Text(
+                  'No rejected suggestions',
+                  style: GoogleFonts.poppins(
+                    fontSize: 16,
+                    color: textColor1.withOpacity(0.5),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        return ListView.builder(
+          itemCount: suggestions.length,
+          padding: const EdgeInsets.all(8),
+          itemBuilder: (context, index) {
+            return _buildSuggestionCard(suggestions[index], isPending: false);
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildSuggestionCard(Map<String, dynamic> suggestion, {required bool isPending}) {
     final categoryName = suggestion['categoryName'] ?? 'Unknown';
-    final description = suggestion['description'] ?? 'No description';
-    final status = suggestion['status'] ?? 'pending';
+    final description = suggestion['description'] ?? '';
     final submittedAt = suggestion['submittedAt'] as Timestamp?;
     final reviewedAt = suggestion['reviewedAt'] as Timestamp?;
     final rejectionReason = suggestion['rejectionReason'];
+    final suggestedBy = suggestion['suggestedBy'] ?? '';
 
     return Card(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
       elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Category Name
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    categoryName,
-                    style: GoogleFonts.montserrat(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: primaryColor,
-                    ),
-                  ),
-                ),
-                _buildStatusBadge(status),
-              ],
+            Text(
+              categoryName,
+              style: GoogleFonts.poppins(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: textColor1,
+              ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 4),
 
             // Description
-            if (description.isNotEmpty && description != 'No description')
+            if (description.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(bottom: 8),
                 child: Text(
                   description,
                   style: GoogleFonts.poppins(
                     fontSize: 13,
-                    color: Colors.grey[700],
+                    color: textColor1.withOpacity(0.7),
                   ),
                 ),
               ),
 
+            // Submitted By (with user name lookup)
+            FutureBuilder<String>(
+              future: _getUserName(suggestedBy),
+              builder: (context, userSnapshot) {
+                final userName = userSnapshot.data ?? 'Loading...';
+                return Row(
+                  children: [
+                    Icon(Icons.person, size: 14, color: textColor1.withOpacity(0.5)),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Submitted by: $userName',
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        color: textColor1.withOpacity(0.5),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+            const SizedBox(height: 4),
+
             // Submitted Date
             if (submittedAt != null)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Row(
+              Row(
+                children: [
+                  Icon(Icons.access_time, size: 14, color: textColor1.withOpacity(0.5)),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Submitted: ${DateFormat('MMM dd, yyyy').format(submittedAt.toDate())}',
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      color: textColor1.withOpacity(0.5),
+                    ),
+                  ),
+                ],
+              ),
+
+            // Approved/Rejected Info
+            if (!isPending) ...[
+              const SizedBox(height: 4),
+              if (reviewedAt != null && rejectionReason == null)
+                Row(
                   children: [
-                    Icon(Icons.calendar_today, size: 14, color: Colors.grey[600]),
-                    const SizedBox(width: 6),
+                    const Icon(Icons.check_circle, size: 14, color: Colors.green),
+                    const SizedBox(width: 4),
                     Text(
-                      'Submitted: ${DateFormat('MMM dd, yyyy').format(submittedAt.toDate())}',
+                      'Approved: ${DateFormat('MMM dd, yyyy').format(reviewedAt.toDate())}',
                       style: GoogleFonts.poppins(
                         fontSize: 12,
-                        color: Colors.grey[600],
+                        color: Colors.green,
                       ),
                     ),
                   ],
                 ),
-              ),
-
-            // Reviewed Date (if reviewed)
-            if (reviewedAt != null && status != 'pending')
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Row(
-                  children: [
-                    Icon(Icons.check_circle, size: 14, color: Colors.grey[600]),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Reviewed: ${DateFormat('MMM dd, yyyy').format(reviewedAt.toDate())}',
-                      style: GoogleFonts.poppins(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-            // Rejection Reason (if rejected)
-            if (status == 'rejected' && rejectionReason != null)
-              Container(
-                margin: const EdgeInsets.only(top: 8),
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.red[50],
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.red[200]!),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.info_outline, size: 16, color: Colors.red[700]),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Reason: $rejectionReason',
-                        style: GoogleFonts.poppins(
-                          fontSize: 12,
-                          color: Colors.red[700],
+              if (rejectionReason != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(Icons.cancel, size: 14, color: Colors.red),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          'Reason: $rejectionReason',
+                          style: GoogleFonts.poppins(
+                            fontSize: 12,
+                            color: Colors.red,
+                          ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
+            ],
 
             // Action Buttons (only for pending)
-            if (status == 'pending') ...[
+            if (isPending) ...[
               const SizedBox(height: 12),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  TextButton.icon(
+                  OutlinedButton.icon(
                     onPressed: () => _showRejectDialog(suggestion['id']),
-                    icon: const Icon(Icons.close, size: 18),
-                    label: Text(
-                      'Reject',
-                      style: GoogleFonts.montserrat(fontWeight: FontWeight.w600),
-                    ),
-                    style: TextButton.styleFrom(
+                    icon: const Icon(Icons.cancel, size: 18),
+                    label: const Text('Reject'),
+                    style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.red,
+                      side: const BorderSide(color: Colors.red),
                     ),
                   ),
                   const SizedBox(width: 8),
                   ElevatedButton.icon(
                     onPressed: () => _approveSuggestion(suggestion['id']),
-                    icon: const Icon(Icons.check, size: 18),
-                    label: Text(
-                      'Approve',
-                      style: GoogleFonts.montserrat(fontWeight: FontWeight.w600),
-                    ),
+                    icon: const Icon(Icons.check_circle, size: 18),
+                    label: const Text('Approve'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green,
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
                     ),
                   ),
                 ],
@@ -294,51 +354,22 @@ class _ReviewCategoriesScreenState extends State<ReviewCategoriesScreen> {
     );
   }
 
-  Widget _buildStatusBadge(String status) {
-    Color color;
-    IconData icon;
-    String label;
-
-    switch (status) {
-      case 'approved':
-        color = Colors.green;
-        icon = Icons.check_circle;
-        label = 'Approved';
-        break;
-      case 'rejected':
-        color = Colors.red;
-        icon = Icons.cancel;
-        label = 'Rejected';
-        break;
-      default:
-        color = Colors.orange;
-        icon = Icons.pending;
-        label = 'Pending';
+  Future<String> _getUserName(String userId) async {
+    if (userId.isEmpty) return 'Unknown User';
+    
+    try {
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .get();
+      
+      if (userDoc.exists) {
+        return userDoc.data()?['name'] ?? 'Unknown User';
+      }
+      return 'Unknown User';
+    } catch (e) {
+      return 'Unknown User';
     }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: color),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: GoogleFonts.poppins(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: color,
-            ),
-          ),
-        ],
-      ),
-    );
   }
 
   Future<void> _approveSuggestion(String suggestionId) async {
@@ -376,59 +407,43 @@ class _ReviewCategoriesScreenState extends State<ReviewCategoriesScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
         title: Text(
           'Reject Suggestion',
-          style: GoogleFonts.montserrat(
-            fontWeight: FontWeight.w700,
-            color: primaryColor,
-          ),
+          style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Please provide a reason for rejection:',
-              style: GoogleFonts.poppins(fontSize: 13),
+              'Provide a reason for rejection:',
+              style: GoogleFonts.poppins(fontSize: 14),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             TextField(
               controller: reasonController,
-              maxLines: 3,
               decoration: InputDecoration(
-                hintText: 'Reason for rejection...',
-                hintStyle: GoogleFonts.poppins(color: Colors.grey[400]),
+                labelText: 'Rejection Reason',
+                hintText: 'Enter reason...',
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: primaryColor, width: 2),
+                  borderRadius: BorderRadius.circular(8),
                 ),
               ),
+              maxLines: 3,
             ),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(
-              'Cancel',
-              style: GoogleFonts.montserrat(color: Colors.grey),
-            ),
+            child: const Text('Cancel'),
           ),
           ElevatedButton(
             onPressed: () async {
               if (reasonController.text.trim().isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      'Please provide a reason',
-                      style: GoogleFonts.poppins(),
-                    ),
+                  const SnackBar(
+                    content: Text('Please provide a reason'),
                     backgroundColor: Colors.orange,
                   ),
                 );
@@ -443,11 +458,8 @@ class _ReviewCategoriesScreenState extends State<ReviewCategoriesScreen> {
                 if (mounted) {
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        'Category suggestion rejected',
-                        style: GoogleFonts.poppins(),
-                      ),
+                    const SnackBar(
+                      content: Text('Category suggestion rejected'),
                       backgroundColor: Colors.red,
                     ),
                   );
@@ -455,11 +467,8 @@ class _ReviewCategoriesScreenState extends State<ReviewCategoriesScreen> {
               } catch (e) {
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        'Failed to reject suggestion',
-                        style: GoogleFonts.poppins(),
-                      ),
+                    const SnackBar(
+                      content: Text('Failed to reject suggestion'),
                       backgroundColor: Colors.red,
                     ),
                   );
@@ -468,14 +477,9 @@ class _ReviewCategoriesScreenState extends State<ReviewCategoriesScreen> {
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
             ),
-            child: Text(
-              'Reject',
-              style: GoogleFonts.montserrat(
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
-              ),
-            ),
+            child: const Text('Reject'),
           ),
         ],
       ),

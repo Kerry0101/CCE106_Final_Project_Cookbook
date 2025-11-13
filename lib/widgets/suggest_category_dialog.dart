@@ -74,19 +74,31 @@ class _SuggestCategoryDialogState extends State<SuggestCategoryDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+    
     return Dialog(
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
       ),
+      insetPadding: EdgeInsets.symmetric(
+        horizontal: 20,
+        vertical: keyboardHeight > 0 ? 20 : 40,
+      ),
       child: Container(
-        constraints: const BoxConstraints(maxWidth: 500),
-        padding: const EdgeInsets.all(24),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+        constraints: BoxConstraints(
+          maxWidth: 500,
+          maxHeight: MediaQuery.of(context).size.height - 100,
+        ),
+        child: SingleChildScrollView(
+          padding: EdgeInsets.only(bottom: keyboardHeight > 0 ? 10 : 0),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
               // Title
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -244,7 +256,9 @@ class _SuggestCategoryDialogState extends State<SuggestCategoryDialog> {
                   ),
                 ],
               ),
-            ],
+                ],
+              ),
+            ),
           ),
         ),
       ),

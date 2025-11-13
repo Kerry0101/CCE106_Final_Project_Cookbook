@@ -3,6 +3,7 @@ class Recipe {
   String userID;
   final String name;
   final double rating;
+  final int reviewCount;
   final String prepTime;
   final String cookingTime;
   final String totalTime;
@@ -22,6 +23,7 @@ class Recipe {
     required this.userID,
     required this.name,
     required this.rating,
+    this.reviewCount = 0,
     required this.prepTime,
     required this.cookingTime,
     required this.totalTime,
@@ -43,6 +45,7 @@ class Recipe {
       'userID': userID,
       'name': name,
       'rating': rating,
+      'reviewCount': reviewCount,
       'prepTime': prepTime,
       'cookingTime': cookingTime,
       'totalTime': totalTime,
@@ -64,6 +67,7 @@ class Recipe {
     userID: json['userID'] ?? '',
     name: json['name'] ?? '',
     rating: (json['rating'] ?? 0).toDouble(),
+    reviewCount: json['reviewCount'] ?? 0,
     prepTime: json['prepTime'] ?? '',
     cookingTime: json['cookingTime'] ?? '',
     totalTime: json['totalTime'] ?? '',

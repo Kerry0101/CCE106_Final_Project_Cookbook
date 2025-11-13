@@ -1,12 +1,12 @@
 import 'package:cookbook/utils/utils.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'package:cookbook/models/recipe.dart';
 import 'package:cookbook/screens/recipes/recipe_edit.dart';
 import 'package:cookbook/services/firestore_functions.dart';
 import 'package:cookbook/utils/colors.dart';
+import 'package:cookbook/widgets/recipe_reviews_page.dart';
 
 class RecipeAbout extends StatefulWidget {
   final Recipe recipe;
@@ -17,13 +17,26 @@ class RecipeAbout extends StatefulWidget {
   State<RecipeAbout> createState() => _RecipeAboutState();
 }
 
-class _RecipeAboutState extends State<RecipeAbout> {
+class _RecipeAboutState extends State<RecipeAbout> with SingleTickerProviderStateMixin {
   Utils utils = Utils();
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 4, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 3,
+      length: 4,
       child: Scaffold(
         appBar: AppBar(
           backgroundColor: primaryColor,
@@ -122,7 +135,9 @@ class _RecipeAboutState extends State<RecipeAbout> {
             ),
           ],
           bottom: TabBar(
+            controller: _tabController,
             indicatorColor: primaryColor2,
+            isScrollable: true,
             tabs: [
               Tab(
                 child: Text(
@@ -142,10 +157,17 @@ class _RecipeAboutState extends State<RecipeAbout> {
                   style: GoogleFonts.lato(color: Colors.white),
                 ),
               ),
+              Tab(
+                child: Text(
+                  'Reviews',
+                  style: GoogleFonts.lato(color: Colors.white),
+                ),
+              ),
             ],
           ),
         ),
         body: TabBarView(
+          controller: _tabController,
           children: [
             SingleChildScrollView(
               child: Column(
@@ -222,7 +244,6 @@ class _RecipeAboutState extends State<RecipeAbout> {
                     ],
                   ),
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Padding(
                         padding: const EdgeInsets.fromLTRB(20, 0, 8, 8),
@@ -234,33 +255,70 @@ class _RecipeAboutState extends State<RecipeAbout> {
                           ),
                         ),
                       ),
-                      Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Column(
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
-                              child: IgnorePointer(
-                                ignoring: true,
-                                child: RatingBar.builder(
-                                  initialRating: widget.recipe.rating,
-                                  minRating: 1,
-                                  direction: Axis.horizontal,
-                                  allowHalfRating: false,
-                                  itemCount: 5,
-                                  itemSize: 20,
-                                  itemBuilder: (context, _) => const Icon(
-                                    Icons.star,
-                                    color: Colors.amber,
-                                  ),
-                                  onRatingUpdate: (rating) {},
-                                ),
+                    ],
+                  ),
+                  // Rating Summary - Tappable to go to Reviews tab
+                  GestureDetector(
+                    onTap: () {
+                      _tabController.animateTo(3); // Navigate to Reviews tab
+                    },
+                    child: Container(
+                      margin: const EdgeInsets.fromLTRB(20, 8, 20, 8),
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [bgc1, bgc2],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.grey.withOpacity(0.2),
+                            spreadRadius: 1,
+                            blurRadius: 5,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.star,
+                            color: Colors.amber[700],
+                            size: 24,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            widget.recipe.reviewCount > 0
+                                ? widget.recipe.rating.toStringAsFixed(1)
+                                : 'No ratings yet',
+                            style: GoogleFonts.lato(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: textColor1,
+                            ),
+                          ),
+                          if (widget.recipe.reviewCount > 0) ...[
+                            const SizedBox(width: 6),
+                            Text(
+                              '(${_formatReviewCount(widget.recipe.reviewCount)}) ${widget.recipe.reviewCount == 1 ? 'rating' : 'ratings'}',
+                              style: GoogleFonts.lato(
+                                fontSize: 15,
+                                color: textColor2,
+                                fontWeight: FontWeight.w500,
                               ),
                             ),
                           ],
-                        ),
+                          const Spacer(),
+                          Icon(
+                            Icons.chevron_right,
+                            color: primaryColor,
+                            size: 24,
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
                   Row(
                     children: [
@@ -451,9 +509,29 @@ class _RecipeAboutState extends State<RecipeAbout> {
                 ],
               ),
             ),
+            // Reviews Tab
+            _buildReviewsTab(),
           ],
         ),
       ),
+    );
+  }
+
+  // Helper function to format review count (1.2k, 350, etc.)
+  String _formatReviewCount(int count) {
+    if (count >= 1000) {
+      return '${(count / 1000).toStringAsFixed(1)}k';
+    }
+    return count.toString();
+  }
+
+  // Build the Reviews tab content
+  Widget _buildReviewsTab() {
+    return RecipeReviewsPage(
+      recipeId: widget.recipe.recipeID,
+      recipeOwnerId: widget.recipe.userID,
+      currentRating: widget.recipe.rating,
+      reviewCount: widget.recipe.reviewCount,
     );
   }
 }

@@ -6,7 +6,6 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
 import 'package:google_fonts/google_fonts.dart';
-import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 
 import 'package:cookbook/models/categories.dart';
 import 'package:cookbook/models/recipe.dart';
@@ -26,7 +25,6 @@ class recipeCreate extends StatefulWidget {
 class _recipeCreateState extends State<recipeCreate> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _recipeName = TextEditingController();
-  double _recipeRating = 0;
   final TextEditingController _recipePrepTime = TextEditingController();
   final TextEditingController _recipeCookingTime = TextEditingController();
   final TextEditingController _recipeTotalTime = TextEditingController();
@@ -104,7 +102,7 @@ class _recipeCreateState extends State<recipeCreate> {
                     recipeID: '',
                     userID: '',
                     name: _recipeName.text,
-                    rating: _recipeRating,
+                    rating: 0.0, // Will be calculated from user reviews
                     prepTime: _recipePrepTime.text,
                     cookingTime: _recipeCookingTime.text,
                     totalTime: _recipeTotalTime.text,
@@ -195,37 +193,6 @@ class _recipeCreateState extends State<recipeCreate> {
                       ),
                     ),
                   ),
-                ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Column(
-              children: [
-                Text(
-                  "Rating",
-                  style: GoogleFonts.lato(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                RatingBar.builder(
-                  initialRating: _recipeRating,
-                  minRating: 1,
-                  direction: Axis.horizontal,
-                  allowHalfRating: false,
-                  itemCount: 5,
-                  itemSize: 40,
-                  itemBuilder: (context, _) => const Icon(
-                    Icons.star,
-                    color: Colors.amber,
-                  ),
-                  onRatingUpdate: (newRecipeRating) {
-                    setState(() {
-                      _recipeRating = newRecipeRating;
-                    });
-                  },
                 ),
               ],
             ),
@@ -347,7 +314,7 @@ class _recipeCreateState extends State<recipeCreate> {
                       recipeID: '',
                       userID: '',
                       name: _recipeName.text,
-                      rating: _recipeRating,
+                      rating: 0.0, // Will be calculated from user reviews
                       prepTime: _recipePrepTime.text,
                       cookingTime: _recipeCookingTime.text,
                       totalTime: _recipeTotalTime.text,

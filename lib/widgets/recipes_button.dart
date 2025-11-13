@@ -205,22 +205,37 @@ class _RecipesButtonState extends State<RecipesButton> {
                             ],
                           ),
                         ],
-                        const SizedBox(height: 2),
-                        IgnorePointer(
-                          ignoring: true,
-                          child: RatingBar.builder(
-                            initialRating: widget.recipe.rating,
-                            minRating: 1,
-                            direction: Axis.horizontal,
-                            allowHalfRating: false,
-                            itemCount: 5,
-                            itemSize: 11,
-                            itemBuilder: (context, _) => const Icon(
-                              Icons.star,
-                              color: Colors.amber,
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            IgnorePointer(
+                              ignoring: true,
+                              child: RatingBar.builder(
+                                initialRating: widget.recipe.rating,
+                                minRating: 1,
+                                direction: Axis.horizontal,
+                                allowHalfRating: false,
+                                itemCount: 5,
+                                itemSize: 11,
+                                itemBuilder: (context, _) => const Icon(
+                                  Icons.star,
+                                  color: Colors.amber,
+                                ),
+                                onRatingUpdate: (rating) {},
+                              ),
                             ),
-                            onRatingUpdate: (rating) {},
-                          ),
+                            if (widget.recipe.reviewCount > 0) ...[
+                              const SizedBox(width: 4),
+                              Text(
+                                '(${widget.recipe.reviewCount}) ${widget.recipe.reviewCount == 1 ? 'rating' : 'ratings'}',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 10,
+                                  color: Colors.grey[600],
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                       ],
                     ),
