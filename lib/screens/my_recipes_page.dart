@@ -21,71 +21,75 @@ class _MyRecipesPageState extends State<MyRecipesPage> {
     return Scaffold(
       drawer: buildDrawer(context),
       appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
         title: Text(
           'My Recipes',
           style: GoogleFonts.poppins(
             fontSize: 20,
             fontWeight: FontWeight.w600,
+            color: primaryColor,
           ),
         ),
-        flexibleSpace: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [bgc1, bgc2, bgc3, bgc4],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
+        iconTheme: IconThemeData(
+          color: primaryColor,
         ),
       ),
-      body: StreamBuilder<List<Recipe>>(
-        stream: readMyRecipes(),
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          }
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            colors: [bgc1, bgc2, bgc3, bgc4],
+          ),
+        ),
+        child: StreamBuilder<List<Recipe>>(
+          stream: readMyRecipes(),
+          builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              return Center(child: Text('Error: ${snapshot.error}'));
+            }
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-          final recipes = snapshot.data ?? [];
+            final recipes = snapshot.data ?? [];
 
-          if (recipes.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.food_bank_outlined,
-                    size: 80,
-                    color: textColor1.withOpacity(0.3),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'No recipes yet',
-                    style: GoogleFonts.poppins(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w500,
-                      color: textColor1.withOpacity(0.5),
+            if (recipes.isEmpty) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.food_bank_outlined,
+                      size: 80,
+                      color: textColor1.withOpacity(0.3),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Create your first recipe!',
-                    style: GoogleFonts.poppins(
-                      fontSize: 14,
-                      color: textColor1.withOpacity(0.4),
+                    const SizedBox(height: 16),
+                    Text(
+                      'No recipes yet',
+                      style: GoogleFonts.poppins(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w500,
+                        color: textColor1.withOpacity(0.5),
+                      ),
                     ),
-                  ),
-                ],
-              ),
-            );
-          }
+                    const SizedBox(height: 8),
+                    Text(
+                      'Create your first recipe!',
+                      style: GoogleFonts.poppins(
+                        fontSize: 14,
+                        color: textColor1.withOpacity(0.4),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
 
-          return ListView.builder(
-            controller: _scrollCtrl,
-            itemCount: recipes.length,
-            itemBuilder: (context, index) {
+            return ListView.builder(
+              controller: _scrollCtrl,
+              itemCount: recipes.length,
+              itemBuilder: (context, index) {
               return Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
@@ -179,6 +183,7 @@ class _MyRecipesPageState extends State<MyRecipesPage> {
             },
           );
         },
+        ),
       ),
     );
   }

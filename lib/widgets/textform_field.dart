@@ -5,6 +5,7 @@ class TextBoxField extends StatefulWidget {
   final String label, placeholderText;
   final TextEditingController formController;
   final void Function(String)? onChanged;
+  final String? Function(String?)? validator;
 
   const TextBoxField({
     super.key,
@@ -12,6 +13,7 @@ class TextBoxField extends StatefulWidget {
     required this.formController,
     required this.placeholderText,
     this.onChanged,
+    this.validator,
   });
 
   @override
@@ -26,45 +28,39 @@ class _TextBoxFieldState extends State<TextBoxField> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Form(
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(2.0),
-                  child: TextFormField(
-                    controller: widget.formController,
-                    decoration: InputDecoration(
-                      border: const OutlineInputBorder(),
-                      labelText: widget.label,
-                      hintText: widget.placeholderText,
-                      suffixIcon: IconButton(
-                        onPressed: () {
-                          widget.formController.clear();
-                        },
-                        icon: const Icon(Icons.clear),
-                      ),
-                      labelStyle: GoogleFonts.lato(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      hintStyle: GoogleFonts.lato(
-                        fontSize: 16,
-                      ),
-                    ),
-                    onChanged: (value) {
-                      if (widget.onChanged != null) {
-                        widget.onChanged!(value);
-                      }
-                    },
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'This field cannot be blank.';
-                      }
-                      return null;
-                    },
-                  ),
+          Padding(
+            padding: const EdgeInsets.all(2.0),
+            child: TextFormField(
+              controller: widget.formController,
+              decoration: InputDecoration(
+                border: const OutlineInputBorder(),
+                labelText: widget.label,
+                hintText: widget.placeholderText,
+                suffixIcon: IconButton(
+                  onPressed: () {
+                    widget.formController.clear();
+                  },
+                  icon: const Icon(Icons.clear),
                 ),
-              ],
+                labelStyle: GoogleFonts.lato(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+                hintStyle: GoogleFonts.lato(
+                  fontSize: 16,
+                ),
+              ),
+              onChanged: (value) {
+                if (widget.onChanged != null) {
+                  widget.onChanged!(value);
+                }
+              },
+              validator: widget.validator ?? (value) {
+                if (value == null || value.isEmpty) {
+                  return 'This field cannot be blank.';
+                }
+                return null;
+              },
             ),
           ),
         ],

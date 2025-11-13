@@ -5,12 +5,14 @@ import 'package:google_fonts/google_fonts.dart';
 class InputLists extends StatefulWidget {
   List<String> listController = [];
   final String header, label;
+  final bool multiline;
 
   InputLists(
       {super.key,
         required this.header,
         required this.listController,
-        required this.label});
+        required this.label,
+        this.multiline = false});
 
   @override
   State<InputLists> createState() => _InputListsState();
@@ -48,6 +50,9 @@ class _InputListsState extends State<InputLists> {
                               labelText: '${widget.label} ${index + 1}',
                               border: const OutlineInputBorder(),
                             ),
+                            maxLines: widget.multiline ? null : 1,
+                            keyboardType: widget.multiline ? TextInputType.multiline : TextInputType.text,
+                            textInputAction: widget.multiline ? TextInputAction.newline : TextInputAction.done,
                             onChanged: (newValue) {
                               setState(() {
                                 widget.listController[index] = newValue;

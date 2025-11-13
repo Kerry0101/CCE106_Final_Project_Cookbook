@@ -6,7 +6,7 @@ class ReviewService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   static final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  /// Submit or update a review for a recipe
+  /// Submit a new review for a recipe (allows multiple reviews per user)
   static Future<void> submitReview({
     required String recipeId,
     required double rating,
@@ -19,26 +19,24 @@ class ReviewService {
     final userDoc = await _firestore.collection('users').doc(userId).get();
     final userName = userDoc.data()?['name'] ?? 'Anonymous';
 
+    // Use auto-generated ID to allow multiple reviews per user
     final reviewRef = _firestore
         .collection('recipes')
         .doc(recipeId)
         .collection('reviews')
-        .doc(userId);
+        .doc(); // Auto-generate document ID
 
-    final existingReview = await reviewRef.get();
     final now = DateTime.now();
 
     final review = Review(
-      reviewId: userId,
+      reviewId: reviewRef.id, // Use the auto-generated ID
       recipeId: recipeId,
       userId: userId,
       userName: userName,
       rating: rating,
       comment: comment,
-      createdAt: existingReview.exists 
-          ? (existingReview.data()!['createdAt'] as Timestamp).toDate()
-          : now,
-      updatedAt: existingReview.exists ? now : null,
+      createdAt: now,
+      updatedAt: null,
     );
 
     await reviewRef.set(review.toJson());
@@ -47,34 +45,36 @@ class ReviewService {
     await _updateRecipeRating(recipeId);
   }
 
-  /// Get user's review for a recipe
-  static Future<Review?> getUserReview(String recipeId) async {
+  /// Get all reviews by a specific user for a recipe
+  static Future<List<Review>> getUserReviews(String recipeId) async {
     final userId = _auth.currentUser?.uid;
-    if (userId == null) return null;
+    if (userId == null) return [];
 
-    final doc = await _firestore
+    final snapshot = await _firestore
         .collection('recipes')
         .doc(recipeId)
         .collection('reviews')
-        .doc(userId)
+        .where('userId', isEqualTo: userId)
+        .orderBy('createdAt', descending: true)
         .get();
 
-    if (!doc.exists) return null;
-    return Review.fromJson(doc.data()!);
+    return snapshot.docs.map((doc) => Review.fromJson(doc.data())).toList();
   }
 
-  /// Stream user's review for a recipe
-  static Stream<Review?> getUserReviewStream(String recipeId) {
+  /// Stream all reviews by a specific user for a recipe
+  static Stream<List<Review>> getUserReviewsStream(String recipeId) {
     final userId = _auth.currentUser?.uid;
-    if (userId == null) return Stream.value(null);
+    if (userId == null) return Stream.value([]);
 
     return _firestore
         .collection('recipes')
         .doc(recipeId)
         .collection('reviews')
-        .doc(userId)
+        .where('userId', isEqualTo: userId)
+        .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((doc) => doc.exists ? Review.fromJson(doc.data()!) : null);
+        .map((snapshot) => 
+            snapshot.docs.map((doc) => Review.fromJson(doc.data())).toList());
   }
 
   /// Get all reviews for a recipe
@@ -130,17 +130,60 @@ class ReviewService {
     });
   }
 
-  /// Delete a review
-  static Future<void> deleteReview(String recipeId) async {
+  /// Update an existing review
+  static Future<void> updateReview({
+    required String recipeId,
+    required String reviewId,
+    required double rating,
+    String? comment,
+  }) async {
     final userId = _auth.currentUser?.uid;
     if (userId == null) throw Exception('User not authenticated');
 
-    await _firestore
+    final reviewRef = _firestore
         .collection('recipes')
         .doc(recipeId)
         .collection('reviews')
-        .doc(userId)
-        .delete();
+        .doc(reviewId);
+
+    final reviewDoc = await reviewRef.get();
+    if (!reviewDoc.exists) throw Exception('Review not found');
+
+    // Verify user owns this review
+    if (reviewDoc.data()?['userId'] != userId) {
+      throw Exception('Unauthorized to edit this review');
+    }
+
+    await reviewRef.update({
+      'rating': rating,
+      'comment': comment,
+      'updatedAt': Timestamp.fromDate(DateTime.now()),
+    });
+
+    // Update recipe's average rating
+    await _updateRecipeRating(recipeId);
+  }
+
+  /// Delete a review
+  static Future<void> deleteReview(String recipeId, String reviewId) async {
+    final userId = _auth.currentUser?.uid;
+    if (userId == null) throw Exception('User not authenticated');
+
+    final reviewRef = _firestore
+        .collection('recipes')
+        .doc(recipeId)
+        .collection('reviews')
+        .doc(reviewId);
+
+    final reviewDoc = await reviewRef.get();
+    if (!reviewDoc.exists) throw Exception('Review not found');
+
+    // Verify user owns this review
+    if (reviewDoc.data()?['userId'] != userId) {
+      throw Exception('Unauthorized to delete this review');
+    }
+
+    await reviewRef.delete();
 
     await _updateRecipeRating(recipeId);
   }

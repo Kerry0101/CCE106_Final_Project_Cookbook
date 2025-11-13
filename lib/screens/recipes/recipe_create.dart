@@ -24,6 +24,7 @@ class recipeCreate extends StatefulWidget {
 
 class _recipeCreateState extends State<recipeCreate> {
   final _formKey = GlobalKey<FormState>();
+  AutovalidateMode _autovalidateMode = AutovalidateMode.disabled;
   final TextEditingController _recipeName = TextEditingController();
   final TextEditingController _recipePrepTime = TextEditingController();
   final TextEditingController _recipeCookingTime = TextEditingController();
@@ -80,73 +81,31 @@ class _recipeCreateState extends State<recipeCreate> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: primaryColor,
-        actions: [
-          Padding(
-            padding: const EdgeInsets.all(10.0),
-            child: IconButton(
-              icon: const Icon(Icons.add),
-              onPressed: () async {
-                try {
-                  String? imageUrl;
-                  if (pickedFile != null) {
-                    imageUrl = await uploadFile();
-                    if (imageUrl == null) {
-                      utils.showSnackBar(
-                          'Failed to upload image. Please try again.', Colors.red);
-                      return;
-                    }
-                  }
-
-                  final recipe = Recipe(
-                    recipeID: '',
-                    userID: '',
-                    name: _recipeName.text,
-                    rating: 0.0, // Will be calculated from user reviews
-                    prepTime: _recipePrepTime.text,
-                    cookingTime: _recipeCookingTime.text,
-                    totalTime: _recipeTotalTime.text,
-                    category: _recipeSelectedCategory ?? '',
-                    tag: _recipeTag.text,
-                    ingredients: _recipeIngredients,
-                    directions: _recipeDirections,
-                    imageUrl: imageUrl,
-                  );
-
-                  // Create the recipe
-                  await createRecipe(recipe);
-
-                  Navigator.of(context).pop();
-                  Navigator.of(context).pushReplacement(
-                    MaterialPageRoute(
-                      builder: (context) => const HomePage(),
-                    ),
-                  );
-                  utils.showSnackBar(
-                      'Recipe created successfully!', Colors.green);
-                } catch (error) {
-                  debugPrint('Error: $error');
-                  utils.showSnackBar(
-                      'An error occurred. Please try again later.', Colors.red);
-                }
-              },
-            ),
-          ),
-        ],
+        backgroundColor: Colors.transparent,
+        elevation: 0,
         title: Text(
           "New Recipe",
           style: GoogleFonts.lato(
             fontWeight: FontWeight.bold,
-            color: Colors.white,
+            color: primaryColor,
           ),
         ),
-        iconTheme: const IconThemeData(
-          color: Colors.white,
+        iconTheme: IconThemeData(
+          color: primaryColor,
         ),
       ),
-      body: ListView(
-        key: _formKey,
-        children: [
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            colors: [bgc1, bgc2, bgc3, bgc4],
+          ),
+        ),
+        child: Form(
+          key: _formKey,
+          autovalidateMode: _autovalidateMode,
+          child: ListView(
+          children: [
           Padding(
             padding: const EdgeInsets.all(20.0),
             child: Column(
@@ -202,6 +161,12 @@ class _recipeCreateState extends State<recipeCreate> {
             formController: _recipeName,
             placeholderText: "e.g. Beef Steak",
             onChanged: (_) {},
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'Please enter a recipe name';
+              }
+              return null;
+            },
           ),
           TextBoxField(
             label: "Preparation Time (mins)",
@@ -210,6 +175,15 @@ class _recipeCreateState extends State<recipeCreate> {
             onChanged: (_) {
               _calculateTotalTime();
             },
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'Please enter preparation time';
+              }
+              if (int.tryParse(value) == null) {
+                return 'Please enter a valid number';
+              }
+              return null;
+            },
           ),
           TextBoxField(
             label: "Cooking Time (mins)",
@@ -217,6 +191,15 @@ class _recipeCreateState extends State<recipeCreate> {
             placeholderText: "In minutes",
             onChanged: (_) {
               _calculateTotalTime();
+            },
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'Please enter cooking time';
+              }
+              if (int.tryParse(value) == null) {
+                return 'Please enter a valid number';
+              }
+              return null;
             },
           ),
           TextBoxField(
@@ -242,33 +225,52 @@ class _recipeCreateState extends State<recipeCreate> {
                     children: [
                       Padding(
                         padding: const EdgeInsets.all(2.0),
-                        child: DropdownButtonFormField<String>(
-                          initialValue: _recipeSelectedCategory,
-                          decoration: const InputDecoration(
-                            border: OutlineInputBorder(),
-                            hintText: "Select Category",
+                        child: Theme(
+                          data: Theme.of(context).copyWith(
+                            scrollbarTheme: ScrollbarThemeData(
+                              thumbColor: WidgetStateProperty.resolveWith((states) {
+                                if (states.contains(WidgetState.dragged)) {
+                                  return Colors.grey[600]; // Darker when actively dragging
+                                } else if (states.contains(WidgetState.hovered)) {
+                                  return Colors.grey[500]; // Medium when hovering
+                                }
+                                return Colors.grey[400]; // Lighter when inactive
+                              }),
+                              thickness: WidgetStateProperty.all(6.0), // Slightly thinner
+                              radius: const Radius.circular(4),
+                              thumbVisibility: WidgetStateProperty.all(true), // Always visible
+                              crossAxisMargin: 4.0, // Distance from the edge
+                            ),
                           ),
-                          items: categories.map((String category) {
-                            //variable _categoryList for the options
-                            return DropdownMenuItem<String>(
-                              value: category,
-                              child: Text(
-                                category,
-                                style: GoogleFonts.lato(),
-                              ),
-                            );
-                          }).toList(),
-                          onChanged: (newValue) {
-                            setState(() {
-                              _recipeSelectedCategory = newValue!;
-                            });
-                          },
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please select a category.';
-                            }
-                            return null;
-                          },
+                          child: DropdownButtonFormField<String>(
+                            initialValue: _recipeSelectedCategory,
+                            decoration: const InputDecoration(
+                              border: OutlineInputBorder(),
+                              hintText: "Select Category",
+                            ),
+                            menuMaxHeight: 300, // Limits dropdown height and enables scrolling
+                            items: categories.map((String category) {
+                              //variable _categoryList for the options
+                              return DropdownMenuItem<String>(
+                                value: category,
+                                child: Text(
+                                  category,
+                                  style: GoogleFonts.lato(),
+                                ),
+                              );
+                            }).toList(),
+                            onChanged: (newValue) {
+                              setState(() {
+                                _recipeSelectedCategory = newValue!;
+                              });
+                            },
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please select a category.';
+                              }
+                              return null;
+                            },
+                          ),
                         ),
                       ),
                     ],
@@ -291,6 +293,7 @@ class _recipeCreateState extends State<recipeCreate> {
             header: "Directions",
             listController: _recipeDirections,
             label: "Step ",
+            multiline: true,
           ),
           Padding(
             padding: const EdgeInsets.all(10.0),
@@ -299,7 +302,33 @@ class _recipeCreateState extends State<recipeCreate> {
               height: 50,
               child: ElevatedButton(
                 onPressed: () async {
+                  // Enable autovalidation after first submit attempt
+                  setState(() {
+                    _autovalidateMode = AutovalidateMode.onUserInteraction;
+                  });
+
+                  // Validate all form fields
+                  if (!_formKey.currentState!.validate()) {
+                    utils.showSnackBar('Please fill in all required fields.', Colors.red);
+                    return;
+                  }
+
+                  // Additional validations for lists
+                  if (_recipeIngredients.isEmpty || _recipeIngredients.every((ingredient) => ingredient.trim().isEmpty)) {
+                    utils.showSnackBar('Please add at least one ingredient.', Colors.red);
+                    return;
+                  }
+
+                  if (_recipeDirections.isEmpty || _recipeDirections.every((direction) => direction.trim().isEmpty)) {
+                    utils.showSnackBar('Please add at least one direction step.', Colors.red);
+                    return;
+                  }
+
                   try {
+                    // Remove empty ingredients and directions
+                    _recipeIngredients.removeWhere((ingredient) => ingredient.trim().isEmpty);
+                    _recipeDirections.removeWhere((direction) => direction.trim().isEmpty);
+
                     String? imageUrl;
                     if (pickedFile != null) {
                       imageUrl = await uploadFile();
@@ -345,7 +374,7 @@ class _recipeCreateState extends State<recipeCreate> {
                   }
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: primaryColor2,
+                  backgroundColor: primaryColor,
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -365,6 +394,8 @@ class _recipeCreateState extends State<recipeCreate> {
             ),
           ),
         ],
+        ),
+        ),
       ),
     );
   }

@@ -175,12 +175,12 @@ class _RatingBottomSheetState extends State<_RatingBottomSheet> {
   }
 
   Future<void> _loadExistingReview() async {
-    final review = await ReviewService.getUserReview(widget.recipeId);
+    final reviews = await ReviewService.getUserReviews(widget.recipeId);
     setState(() {
-      _existingReview = review;
-      if (review != null) {
-        _rating = review.rating;
-        _commentController.text = review.comment ?? '';
+      _existingReview = reviews.isNotEmpty ? reviews.first : null;
+      if (_existingReview != null) {
+        _rating = _existingReview!.rating;
+        _commentController.text = _existingReview!.comment ?? '';
       }
       _isLoading = false;
     });

@@ -59,7 +59,7 @@ class _RecipeReviewsPageState extends State<RecipeReviewsPage> {
     }
   }
 
-  void _showAddReviewBottomSheet() {
+  void _showAddReviewBottomSheet({Review? reviewToEdit}) {
     if (_isOwnRecipe()) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -82,13 +82,16 @@ class _RecipeReviewsPageState extends State<RecipeReviewsPage> {
       ),
       builder: (context) => _AddReviewBottomSheet(
         recipeId: widget.recipeId,
+        existingReview: reviewToEdit,
         onReviewSubmitted: () {
           setState(() {});
           Navigator.pop(context);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                'Thank you for your review!',
+                reviewToEdit != null 
+                    ? 'Review updated successfully!'
+                    : 'Thank you for your review!',
                 style: GoogleFonts.lato(),
               ),
               backgroundColor: Colors.green,
@@ -119,17 +122,14 @@ class _RecipeReviewsPageState extends State<RecipeReviewsPage> {
                 margin: const EdgeInsets.all(20),
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [bgc1, bgc2],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.grey[300]!, width: 1),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.grey.withOpacity(0.2),
+                      color: Colors.grey.withOpacity(0.1),
                       spreadRadius: 1,
-                      blurRadius: 6,
+                      blurRadius: 5,
                       offset: const Offset(0, 2),
                     ),
                   ],
@@ -333,6 +333,9 @@ class _RecipeReviewsPageState extends State<RecipeReviewsPage> {
   }
 
   Widget _buildReviewCard(Review review) {
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+    final isOwnReview = currentUserId == review.userId;
+
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       elevation: 2,
@@ -340,66 +343,209 @@ class _RecipeReviewsPageState extends State<RecipeReviewsPage> {
         borderRadius: BorderRadius.circular(12),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // User Avatar
+                // User Avatar (smaller)
                 CircleAvatar(
                   backgroundColor: primaryColor,
-                  radius: 20,
+                  radius: 18,
                   child: Text(
                     review.userName.isNotEmpty ? review.userName[0].toUpperCase() : '?',
                     style: GoogleFonts.lato(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
-                      fontSize: 18,
+                      fontSize: 16,
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        review.userName,
-                        style: GoogleFonts.lato(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
+                      // Username and You badge
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              review.userName,
+                              style: GoogleFonts.lato(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                            ),
+                          ),
+                          if (isOwnReview) ...[
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 5,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: primaryColor.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(3),
+                              ),
+                              child: Text(
+                                'You',
+                                style: GoogleFonts.lato(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                  color: primaryColor,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
-                      Text(
-                        _formatTimeAgo(review.createdAt),
-                        style: GoogleFonts.lato(
-                          fontSize: 12,
-                          color: Colors.grey[600],
-                        ),
+                      const SizedBox(height: 3),
+                      // Time ago and edited indicator
+                      Row(
+                        children: [
+                          Text(
+                            _formatTimeAgo(review.createdAt),
+                            style: GoogleFonts.lato(
+                              fontSize: 11,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                          if (review.updatedAt != null) ...[
+                            Text(
+                              ' • ',
+                              style: GoogleFonts.lato(
+                                fontSize: 11,
+                                color: Colors.grey[500],
+                              ),
+                            ),
+                            Text(
+                              'Edited',
+                              style: GoogleFonts.lato(
+                                fontSize: 10,
+                                color: Colors.grey[500],
+                                fontStyle: FontStyle.italic,
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                     ],
                   ),
                 ),
-                // Rating Stars
+                const SizedBox(width: 8),
+                // Rating Stars (horizontal)
                 Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: List.generate(5, (index) {
                     return Icon(
                       index < review.rating ? Icons.star : Icons.star_border,
                       color: Colors.amber,
-                      size: 18,
+                      size: 16,
                     );
                   }),
                 ),
               ],
             ),
+            // Comment section
             if (review.comment != null && review.comment!.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              Text(
-                review.comment!,
-                style: GoogleFonts.lato(
-                  fontSize: 14,
-                  height: 1.5,
+              const SizedBox(height: 10),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Expanded(
+                    child: Text(
+                      review.comment!,
+                      style: GoogleFonts.lato(
+                        fontSize: 13,
+                        height: 1.4,
+                      ),
+                    ),
+                  ),
+                  // Three-dot menu in bottom-right corner (only for own reviews)
+                  if (isOwnReview) ...[
+                    const SizedBox(width: 8),
+                    PopupMenuButton<String>(
+                      padding: EdgeInsets.zero,
+                      iconSize: 18,
+                      icon: Icon(Icons.more_horiz, color: Colors.grey[500]),
+                      onSelected: (value) {
+                        if (value == 'edit') {
+                          _showAddReviewBottomSheet(reviewToEdit: review);
+                        } else if (value == 'delete') {
+                          _showDeleteConfirmation(review);
+                        }
+                      },
+                      itemBuilder: (context) => [
+                        PopupMenuItem(
+                          value: 'edit',
+                          child: Row(
+                            children: [
+                              Icon(Icons.edit, size: 16, color: Colors.grey[700]),
+                              const SizedBox(width: 8),
+                              const Text('Edit', style: TextStyle(fontSize: 13)),
+                            ],
+                          ),
+                        ),
+                        PopupMenuItem(
+                          value: 'delete',
+                          child: Row(
+                            children: [
+                              const Icon(Icons.delete, size: 16, color: Colors.red),
+                              const SizedBox(width: 8),
+                              const Text('Delete', style: TextStyle(fontSize: 13)),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+            ],
+            // If no comment but own review, show menu button in bottom-right
+            if ((review.comment == null || review.comment!.isEmpty) && isOwnReview) ...[
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.bottomRight,
+                child: PopupMenuButton<String>(
+                  padding: EdgeInsets.zero,
+                  iconSize: 18,
+                  icon: Icon(Icons.more_horiz, color: Colors.grey[500]),
+                  onSelected: (value) {
+                    if (value == 'edit') {
+                      _showAddReviewBottomSheet(reviewToEdit: review);
+                    } else if (value == 'delete') {
+                      _showDeleteConfirmation(review);
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    PopupMenuItem(
+                      value: 'edit',
+                      child: Row(
+                        children: [
+                          Icon(Icons.edit, size: 16, color: Colors.grey[700]),
+                          const SizedBox(width: 8),
+                          const Text('Edit', style: TextStyle(fontSize: 13)),
+                        ],
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: 'delete',
+                      child: Row(
+                        children: [
+                          const Icon(Icons.delete, size: 16, color: Colors.red),
+                          const SizedBox(width: 8),
+                          const Text('Delete', style: TextStyle(fontSize: 13)),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -408,15 +554,82 @@ class _RecipeReviewsPageState extends State<RecipeReviewsPage> {
       ),
     );
   }
+
+  void _showDeleteConfirmation(Review review) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          'Delete Review?',
+          style: GoogleFonts.lato(fontWeight: FontWeight.bold),
+        ),
+        content: Text(
+          'Are you sure you want to delete this review? This action cannot be undone.',
+          style: GoogleFonts.lato(),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Cancel',
+              style: GoogleFonts.lato(color: Colors.grey[600]),
+            ),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              try {
+                await ReviewService.deleteReview(widget.recipeId, review.reviewId);
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Review deleted successfully',
+                        style: GoogleFonts.lato(),
+                      ),
+                      backgroundColor: Colors.green,
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Failed to delete review: $e',
+                        style: GoogleFonts.lato(),
+                      ),
+                      backgroundColor: Colors.red,
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                }
+              }
+            },
+            child: Text(
+              'Delete',
+              style: GoogleFonts.lato(
+                color: Colors.red,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 // Bottom Sheet for Adding/Editing Review
 class _AddReviewBottomSheet extends StatefulWidget {
   final String recipeId;
+  final Review? existingReview;
   final VoidCallback onReviewSubmitted;
 
   const _AddReviewBottomSheet({
     required this.recipeId,
+    this.existingReview,
     required this.onReviewSubmitted,
   });
 
@@ -428,25 +641,14 @@ class _AddReviewBottomSheetState extends State<_AddReviewBottomSheet> {
   final TextEditingController _commentController = TextEditingController();
   double _rating = 0;
   bool _isLoading = false;
-  Review? _existingReview;
 
   @override
   void initState() {
     super.initState();
-    _loadExistingReview();
-  }
-
-  Future<void> _loadExistingReview() async {
-    final currentUser = FirebaseAuth.instance.currentUser;
-    if (currentUser != null) {
-      final review = await ReviewService.getUserReview(widget.recipeId);
-      if (review != null && mounted) {
-        setState(() {
-          _existingReview = review;
-          _rating = review.rating.toDouble();
-          _commentController.text = review.comment ?? '';
-        });
-      }
+    // If editing existing review, populate fields
+    if (widget.existingReview != null) {
+      _rating = widget.existingReview!.rating;
+      _commentController.text = widget.existingReview!.comment ?? '';
     }
   }
 
@@ -470,13 +672,26 @@ class _AddReviewBottomSheetState extends State<_AddReviewBottomSheet> {
       final currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser == null) throw Exception('User not logged in');
 
-      await ReviewService.submitReview(
-        recipeId: widget.recipeId,
-        rating: _rating,
-        comment: _commentController.text.trim().isEmpty 
-            ? null 
-            : _commentController.text.trim(),
-      );
+      if (widget.existingReview != null) {
+        // Update existing review
+        await ReviewService.updateReview(
+          recipeId: widget.recipeId,
+          reviewId: widget.existingReview!.reviewId,
+          rating: _rating,
+          comment: _commentController.text.trim().isEmpty 
+              ? null 
+              : _commentController.text.trim(),
+        );
+      } else {
+        // Create new review
+        await ReviewService.submitReview(
+          recipeId: widget.recipeId,
+          rating: _rating,
+          comment: _commentController.text.trim().isEmpty 
+              ? null 
+              : _commentController.text.trim(),
+        );
+      }
 
       widget.onReviewSubmitted();
     } catch (e) {
@@ -524,7 +739,7 @@ class _AddReviewBottomSheetState extends State<_AddReviewBottomSheet> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                _existingReview != null ? 'Edit Your Review' : 'Write a Review',
+                widget.existingReview != null ? 'Edit Your Review' : 'Write a Review',
                 style: GoogleFonts.lato(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
@@ -606,7 +821,7 @@ class _AddReviewBottomSheetState extends State<_AddReviewBottomSheet> {
                       ),
                     )
                   : Text(
-                      _existingReview != null ? 'Update Review' : 'Submit Review',
+                      widget.existingReview != null ? 'Update Review' : 'Submit Review',
                       style: GoogleFonts.lato(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,

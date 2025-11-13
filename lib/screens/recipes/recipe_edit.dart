@@ -5,12 +5,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 import 'package:cookbook/models/categories.dart';
 import 'package:cookbook/models/recipe.dart';
 import 'package:cookbook/screens/recipes/recipe_about.dart';
 import 'package:cookbook/services/firestore_functions.dart';
 import 'package:cookbook/services/cloudinary_service.dart';
+import 'package:cookbook/services/role_service.dart';
 import 'package:cookbook/utils/colors.dart';
 import 'package:cookbook/widgets/input_lists.dart';
 import 'package:cookbook/widgets/textform_field.dart';
@@ -45,6 +47,8 @@ class _recipeEditState extends State<recipeEdit> {
   String? _recipeSelectedCategory;
 
   Utils utils = Utils();
+  bool _isAuthorized = false;
+  bool _isCheckingAuth = true;
 
   Future<String?> uploadFile() async {
     if (pickedFile == null) {
@@ -84,6 +88,7 @@ class _recipeEditState extends State<recipeEdit> {
   @override
   void initState() {
     super.initState();
+    _checkAuthorization();
     _recipeName.text = widget.recipe.name;
     _recipePrepTime.text = widget.recipe.prepTime;
     _recipeCookingTime.text = widget.recipe.cookingTime;
@@ -96,8 +101,74 @@ class _recipeEditState extends State<recipeEdit> {
     _pickedImage = widget.recipe.imageUrl;
   }
 
+  Future<void> _checkAuthorization() async {
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+    final isAdmin = await RoleService.isAdmin();
+    
+    setState(() {
+      // User can edit if they own the recipe OR they are an admin
+      _isAuthorized = (currentUserId == widget.recipe.userID) || isAdmin;
+      _isCheckingAuth = false;
+    });
+
+    // If not authorized, show error and navigate back
+    if (!_isAuthorized) {
+      if (mounted) {
+        utils.showSnackBar(
+          'You do not have permission to edit this recipe.',
+          Colors.red,
+        );
+        Navigator.of(context).pop();
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    // Show loading while checking authorization
+    if (_isCheckingAuth) {
+      return Scaffold(
+        appBar: AppBar(
+          backgroundColor: primaryColor,
+          title: Text(
+            "Edit Recipe",
+            style: GoogleFonts.lato(
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          iconTheme: const IconThemeData(
+            color: Colors.white,
+          ),
+        ),
+        body: const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    // Only show edit form if authorized
+    if (!_isAuthorized) {
+      return Scaffold(
+        appBar: AppBar(
+          backgroundColor: primaryColor,
+          title: Text(
+            "Edit Recipe",
+            style: GoogleFonts.lato(
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          iconTheme: const IconThemeData(
+            color: Colors.white,
+          ),
+        ),
+        body: const Center(
+          child: Text('Unauthorized'),
+        ),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: primaryColor,
