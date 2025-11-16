@@ -1,5 +1,7 @@
 import 'dart:io';
 import 'package:cookbook/utils/utils.dart';
+import 'package:cookbook/utils/validators.dart';
+import 'package:cookbook/utils/error_messages.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
@@ -114,9 +116,8 @@ class _recipeEditState extends State<recipeEdit> {
     // If not authorized, show error and navigate back
     if (!_isAuthorized) {
       if (mounted) {
-        utils.showSnackBar(
-          'You do not have permission to edit this recipe.',
-          Colors.red,
+        utils.showError(
+          ErrorMessages.getGeneralErrorMessage('permission'),
         );
         Navigator.of(context).pop();
       }
@@ -178,29 +179,60 @@ class _recipeEditState extends State<recipeEdit> {
             child: IconButton(
               icon: const Icon(Icons.save),
               onPressed: () async {
+                // Validate form fields
+                if (_recipeName.text.trim().isEmpty) {
+                  utils.showError(
+                    Validators.recipeName(_recipeName.text) ?? '',
+                  );
+                  return;
+                }
+
+                // Validate lists
+                final ingredientsError = Validators.listNotEmpty(
+                  _recipeIngredients,
+                  fieldName: 'ingredients',
+                );
+                if (ingredientsError != null) {
+                  utils.showError(ingredientsError);
+                  return;
+                }
+
+                final directionsError = Validators.listNotEmpty(
+                  _recipeDirections,
+                  fieldName: 'directions',
+                );
+                if (directionsError != null) {
+                  utils.showError(directionsError);
+                  return;
+                }
+
                 try {
                   String? imageUrl = await uploadFile();
                   if (pickedFile != null && imageUrl == null) {
-                    utils.showSnackBar(
-                        'Failed to upload image. Please try again.', Colors.red);
+                    utils.showError(
+                      'Failed to upload image. Please check your internet connection and try again.',
+                    );
                     return;
                   }
                   
                   final recipe = Recipe(
                     recipeID: widget.recipe.recipeID,
                     userID: widget.recipe.userID,
-                    name: _recipeName.text,
+                    name: _recipeName.text.trim(),
                     rating: _recipeRating,
-                    prepTime: _recipePrepTime.text,
-                    cookingTime: _recipeCookingTime.text,
-                    totalTime: _recipeTotalTime.text,
+                    prepTime: _recipePrepTime.text.trim(),
+                    cookingTime: _recipeCookingTime.text.trim(),
+                    totalTime: _recipeTotalTime.text.trim(),
                     category: _recipeSelectedCategory ?? '',
-                    tag: _recipeTag.text,
+                    tag: _recipeTag.text.trim(),
                     ingredients: _recipeIngredients,
                     directions: _recipeDirections,
                     imageUrl: imageUrl ?? widget.recipe.imageUrl,
                   );
                   await updateRecipe(recipe, recipe.recipeID);
+                  
+                  if (!mounted) return;
+                  
                   Navigator.of(context).pop();
 
                   Navigator.of(context).pushReplacement(
@@ -208,11 +240,16 @@ class _recipeEditState extends State<recipeEdit> {
                       builder: (context) => RecipeAbout(recipe: recipe),
                     ),
                   );
-                  utils.showSnackBar(
-                      'Recipe updated successfully!', Colors.green);
+                  utils.showSuccess(
+                    ErrorMessages.getSuccessMessage('recipe_updated'),
+                  );
                 } catch (error) {
-                  utils.showSnackBar(
-                      'An error occurred. Please try again later.', Colors.red);
+                  debugPrint('Error: $error');
+                  if (mounted) {
+                    utils.showError(
+                      ErrorMessages.getGeneralErrorMessage(error),
+                    );
+                  }
                 }
               },
             ),
@@ -318,22 +355,31 @@ class _recipeEditState extends State<recipeEdit> {
             formController: _recipeName,
             placeholderText: "e.g. Beef Steak",
             onChanged: (_) {},
+            validator: (value) => Validators.recipeName(value),
           ),
           TextBoxField(
             label: "Preparation Time (mins)",
             formController: _recipePrepTime,
-            placeholderText: "In minutes",
+            placeholderText: "In minutes (e.g., 15)",
             onChanged: (_) {
               _calculateTotalTime();
             },
+            validator: (value) => Validators.positiveNumber(
+              value,
+              fieldName: 'preparation time',
+            ),
           ),
           TextBoxField(
             label: "Cooking Time (mins)",
             formController: _recipeCookingTime,
-            placeholderText: "In minutes",
+            placeholderText: "In minutes (e.g., 30)",
             onChanged: (_) {
               _calculateTotalTime();
             },
+            validator: (value) => Validators.positiveNumber(
+              value,
+              fieldName: 'cooking time',
+            ),
           ),
           TextBoxField(
             label: "Total Time (mins)",
@@ -376,12 +422,10 @@ class _recipeEditState extends State<recipeEdit> {
                               _recipeSelectedCategory = newValue!;
                             });
                           },
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please select a course.';
-                            }
-                            return null;
-                          },
+                          validator: (value) => Validators.requiredSelection(
+                            value,
+                            fieldName: 'a category',
+                          ),
                         ),
                       ),
                     ],
@@ -412,29 +456,60 @@ class _recipeEditState extends State<recipeEdit> {
               height: 50,
               child: ElevatedButton(
                 onPressed: () async {
+                  // Validate form fields
+                  if (_recipeName.text.trim().isEmpty) {
+                    utils.showError(
+                      Validators.recipeName(_recipeName.text) ?? '',
+                    );
+                    return;
+                  }
+
+                  // Validate lists
+                  final ingredientsError = Validators.listNotEmpty(
+                    _recipeIngredients,
+                    fieldName: 'ingredients',
+                  );
+                  if (ingredientsError != null) {
+                    utils.showError(ingredientsError);
+                    return;
+                  }
+
+                  final directionsError = Validators.listNotEmpty(
+                    _recipeDirections,
+                    fieldName: 'directions',
+                  );
+                  if (directionsError != null) {
+                    utils.showError(directionsError);
+                    return;
+                  }
+
                   try {
                     String? imageUrl = await uploadFile();
                     if (pickedFile != null && imageUrl == null) {
-                      utils.showSnackBar(
-                          'Failed to upload image. Please try again.', Colors.red);
+                      utils.showError(
+                        'Failed to upload image. Please check your internet connection and try again.',
+                      );
                       return;
                     }
                     
                     final recipe = Recipe(
                       recipeID: widget.recipe.recipeID,
                       userID: widget.recipe.userID,
-                      name: _recipeName.text,
+                      name: _recipeName.text.trim(),
                       rating: _recipeRating,
-                      prepTime: _recipePrepTime.text,
-                      cookingTime: _recipeCookingTime.text,
-                      totalTime: _recipeTotalTime.text,
+                      prepTime: _recipePrepTime.text.trim(),
+                      cookingTime: _recipeCookingTime.text.trim(),
+                      totalTime: _recipeTotalTime.text.trim(),
                       category: _recipeSelectedCategory ?? '',
-                      tag: _recipeTag.text,
+                      tag: _recipeTag.text.trim(),
                       ingredients: _recipeIngredients,
                       directions: _recipeDirections,
                       imageUrl: imageUrl ?? widget.recipe.imageUrl,
                     );
                     await updateRecipe(recipe, recipe.recipeID);
+                    
+                    if (!mounted) return;
+                    
                     Navigator.of(context).pop();
 
                     Navigator.of(context).pushReplacement(
@@ -442,14 +517,17 @@ class _recipeEditState extends State<recipeEdit> {
                         builder: (context) => RecipeAbout(recipe: recipe),
                       ),
                     );
-                    utils.showSnackBar(
-                        'Recipe updated successfully!', Colors.green);
-          } catch (error) {
-            debugPrint('Error: $error');
-            utils.showSnackBar(
-              'An error occurred. Please try again later.',
-              Colors.red);
-            }
+                    utils.showSuccess(
+                      ErrorMessages.getSuccessMessage('recipe_updated'),
+                    );
+                  } catch (error) {
+                    debugPrint('Error: $error');
+                    if (mounted) {
+                      utils.showError(
+                        ErrorMessages.getGeneralErrorMessage(error),
+                      );
+                    }
+                  }
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: primaryColor2,

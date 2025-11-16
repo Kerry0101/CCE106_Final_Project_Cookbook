@@ -103,12 +103,9 @@ class _ShoppingListsState extends State<ShoppingLists> {
                                   try {
                                     deleteShoppingList(shoppingItem.itemID);
                                     Navigator.of(context).pop();
-                                    utils.showSnackBar(
-                                        "Item has been deleted.", Colors.red);
+                                    utils.showInfo("Item has been deleted.");
                                   } catch (error) {
-                                    utils.showSnackBar(
-                                        'An error occurred. Please try again later.',
-                                        Colors.red);
+                                    utils.showError('An error occurred. Please try again later.');
                                   }
                                 },
                                 child: const Text("Delete"),
@@ -175,7 +172,7 @@ class _ShoppingListsState extends State<ShoppingLists> {
                     quantity: newQty,
                   ));
                   Navigator.of(context).pop();
-                  utils.showSnackBar("Item successfully added!", Colors.green);
+                  utils.showSuccess("Item successfully added!");
                 }
               },
               child: const Text('Add'),

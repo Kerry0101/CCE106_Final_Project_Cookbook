@@ -2,6 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cookbook/main.dart';
 import 'package:cookbook/utils/utils.dart';
 import 'package:cookbook/utils/page_transitions.dart';
+import 'package:cookbook/utils/validators.dart';
+import 'package:cookbook/utils/error_messages.dart';
 import 'package:email_validator/email_validator.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -77,7 +79,9 @@ class _SignUpState extends State<SignUp> {
         'createdAt': FieldValue.serverTimestamp(),
       });
 
-      utils.showSnackBar("Please verify your email before logging in", Colors.blue);
+      utils.showSuccess(
+        ErrorMessages.getSuccessMessage('signup'),
+      );
 
       // use navigatorKey for navigation after async gaps to avoid
       // use_build_context_synchronously warnings
@@ -85,11 +89,11 @@ class _SignUpState extends State<SignUp> {
       navigatorKey.currentState?.pushReplacement(MaterialPageRoute(builder: (context) => const LogIn()));
     } on FirebaseAuthException catch (e) {
       debugPrint(e.toString());
-      utils.showSnackBar(e.message, Colors.red);
+      utils.showError(ErrorMessages.getAuthErrorMessage(e));
       Navigator.of(context).pop(); // Close loading dialog
     } catch (e) {
       debugPrint(e.toString());
-      utils.showSnackBar("An error occurred during registration", Colors.red);
+      utils.showError(ErrorMessages.getGeneralErrorMessage(e));
       Navigator.of(context).pop(); // Close loading dialog
     }
   }
@@ -100,10 +104,12 @@ class _SignUpState extends State<SignUp> {
     if (user != null) {
       await user.reload();
       if (user.emailVerified) {
-        utils.showSnackBar("Email verified! Proceeding to home.", Colors.green);
+        utils.showSuccess(ErrorMessages.getSuccessMessage('email_verified'));
         navigatorKey.currentState?.pushReplacementNamed('/home');
       } else {
-        utils.showSnackBar('Please verify your email before logging in', Colors.red);
+        utils.showWarning(
+          'Please verify your email address before signing in. Check your inbox for the verification link.',
+        );
       }
     }
   }
@@ -196,16 +202,10 @@ class _SignUpState extends State<SignUp> {
                           decoration: const InputDecoration(
                             labelText: 'Full Name',
                             prefixIcon: Icon(Icons.person),
+                            hintText: 'Enter your full name',
                           ),
-                          validator: (value) {
-                            if (value == null || value.trim().isEmpty) {
-                              return 'Please enter your full name';
-                            }
-                            if (value.trim().length < 2) {
-                              return 'Name must be at least 2 characters';
-                            }
-                            return null;
-                          },
+                          autovalidateMode: AutovalidateMode.onUserInteraction,
+                          validator: (value) => Validators.name(value, fieldName: 'Full name'),
                         ),
                         const SizedBox(height: 16),
                         
@@ -216,12 +216,10 @@ class _SignUpState extends State<SignUp> {
                           decoration: const InputDecoration(
                             labelText: 'Email',
                             prefixIcon: Icon(Icons.email),
+                            hintText: 'Enter your email address',
                           ),
                           autovalidateMode: AutovalidateMode.onUserInteraction,
-                          validator: (email) =>
-                          email != null && !EmailValidator.validate(email)
-                              ? 'Enter a valid email'
-                              : null,
+                          validator: (email) => Validators.email(email),
                         ),
                         const SizedBox(height: 16),
                         
@@ -235,17 +233,8 @@ class _SignUpState extends State<SignUp> {
                             hintText: '+1234567890',
                             helperText: 'For password recovery via SMS',
                           ),
-                          validator: (value) {
-                            if (value != null && value.isNotEmpty) {
-                              if (!value.startsWith('+')) {
-                                return 'Phone must start with country code (e.g., +1)';
-                              }
-                              if (value.length < 10) {
-                                return 'Enter a valid phone number';
-                              }
-                            }
-                            return null;
-                          },
+                          autovalidateMode: AutovalidateMode.onUserInteraction,
+                          validator: (value) => Validators.phone(value, isRequired: false),
                         ),
                         const SizedBox(height: 16),
                         
@@ -261,12 +250,8 @@ class _SignUpState extends State<SignUp> {
                                 : '${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}',
                           ),
                           onTap: () => _selectDate(context),
-                          validator: (value) {
-                            if (_selectedDate == null) {
-                              return 'Please select your date of birth';
-                            }
-                            return null;
-                          },
+                          autovalidateMode: AutovalidateMode.onUserInteraction,
+                          validator: (value) => Validators.dateOfBirth(_selectedDate),
                         ),
                         const SizedBox(height: 16),
                         
@@ -280,15 +265,10 @@ class _SignUpState extends State<SignUp> {
                             hintText: 'Age will be calculated from date of birth',
                           ),
                           readOnly: _selectedDate != null,
+                          autovalidateMode: AutovalidateMode.onUserInteraction,
                           validator: (value) {
-                            if (_selectedDate == null && (value == null || value.isEmpty)) {
-                              return 'Please enter your age or select date of birth';
-                            }
-                            if (_selectedDate == null && value != null) {
-                              final age = int.tryParse(value);
-                              if (age == null || age < 13 || age > 120) {
-                                return 'Please enter a valid age (13-120)';
-                              }
+                            if (_selectedDate == null) {
+                              return Validators.age(value, isRequired: true);
                             }
                             return null;
                           },
@@ -313,12 +293,8 @@ class _SignUpState extends State<SignUp> {
                               _selectedGender = newValue;
                             });
                           },
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please select your gender';
-                            }
-                            return null;
-                          },
+                          autovalidateMode: AutovalidateMode.onUserInteraction,
+                          validator: (value) => Validators.requiredSelection(value, fieldName: 'gender'),
                         ),
                         const SizedBox(height: 16),
                         
@@ -339,9 +315,7 @@ class _SignUpState extends State<SignUp> {
                             ),
                           ),
                           autovalidateMode: AutovalidateMode.onUserInteraction,
-                          validator: (value) => value != null && value.length < 6
-                              ? 'Enter minimum 6 characters'
-                              : null,
+                          validator: (value) => Validators.password(value),
                         ),
                         const SizedBox(height: 16),
                         
@@ -362,15 +336,7 @@ class _SignUpState extends State<SignUp> {
                             ),
                           ),
                           autovalidateMode: AutovalidateMode.onUserInteraction,
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please confirm your password';
-                            }
-                            if (value != _password.text) {
-                              return 'Passwords do not match';
-                            }
-                            return null;
-                          },
+                          validator: (value) => Validators.confirmPassword(value, _password.text),
                         ),
                         const SizedBox(height: 12),
                         
@@ -402,7 +368,9 @@ class _SignUpState extends State<SignUp> {
                           child: ElevatedButton(
                             onPressed: () {
                               if (!rememberMe) {
-                                utils.showSnackBar('Please agree to Terms and Privacy Policy', Colors.red);
+                                utils.showError(
+                                  Validators.termsAccepted(rememberMe) ?? '',
+                                );
                                 return;
                               }
                               userSignUp();

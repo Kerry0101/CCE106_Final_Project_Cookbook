@@ -252,11 +252,9 @@ class _RecipesButtonState extends State<RecipesButton> {
                               widget.recipe.recipeID, !isFavorite);
 
                           if (!isFavorite) {
-                            utils.showSnackBar(
-                                "Recipe added to favorites.", Colors.green);
+                            utils.showSuccess("Recipe added to favorites.");
                           } else {
-                            utils.showSnackBar(
-                                "Recipe removed from favorites.", Colors.red);
+                            utils.showInfo("Recipe removed from favorites.");
                           }
                         },
                         child: Container(

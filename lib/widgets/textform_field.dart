@@ -55,9 +55,10 @@ class _TextBoxFieldState extends State<TextBoxField> {
                   widget.onChanged!(value);
                 }
               },
+              autovalidateMode: AutovalidateMode.onUserInteraction,
               validator: widget.validator ?? (value) {
-                if (value == null || value.isEmpty) {
-                  return 'This field cannot be blank.';
+                if (value == null || value.trim().isEmpty) {
+                  return 'This field is required';
                 }
                 return null;
               },

@@ -2,6 +2,8 @@ import 'dart:io';
 
 import 'package:cookbook/screens/home.dart';
 import 'package:cookbook/utils/utils.dart';
+import 'package:cookbook/utils/validators.dart';
+import 'package:cookbook/utils/error_messages.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
@@ -161,46 +163,31 @@ class _recipeCreateState extends State<recipeCreate> {
             formController: _recipeName,
             placeholderText: "e.g. Beef Steak",
             onChanged: (_) {},
-            validator: (value) {
-              if (value == null || value.trim().isEmpty) {
-                return 'Please enter a recipe name';
-              }
-              return null;
-            },
+            validator: (value) => Validators.recipeName(value),
           ),
           TextBoxField(
             label: "Preparation Time (mins)",
             formController: _recipePrepTime,
-            placeholderText: "In minutes",
+            placeholderText: "In minutes (e.g., 15)",
             onChanged: (_) {
               _calculateTotalTime();
             },
-            validator: (value) {
-              if (value == null || value.trim().isEmpty) {
-                return 'Please enter preparation time';
-              }
-              if (int.tryParse(value) == null) {
-                return 'Please enter a valid number';
-              }
-              return null;
-            },
+            validator: (value) => Validators.positiveNumber(
+              value,
+              fieldName: 'preparation time',
+            ),
           ),
           TextBoxField(
             label: "Cooking Time (mins)",
             formController: _recipeCookingTime,
-            placeholderText: "In minutes",
+            placeholderText: "In minutes (e.g., 30)",
             onChanged: (_) {
               _calculateTotalTime();
             },
-            validator: (value) {
-              if (value == null || value.trim().isEmpty) {
-                return 'Please enter cooking time';
-              }
-              if (int.tryParse(value) == null) {
-                return 'Please enter a valid number';
-              }
-              return null;
-            },
+            validator: (value) => Validators.positiveNumber(
+              value,
+              fieldName: 'cooking time',
+            ),
           ),
           TextBoxField(
             label: "Total Time (mins)",
@@ -264,12 +251,10 @@ class _recipeCreateState extends State<recipeCreate> {
                                 _recipeSelectedCategory = newValue!;
                               });
                             },
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Please select a category.';
-                              }
-                              return null;
-                            },
+                            validator: (value) => Validators.requiredSelection(
+                              value,
+                              fieldName: 'a category',
+                            ),
                           ),
                         ),
                       ),
@@ -309,18 +294,28 @@ class _recipeCreateState extends State<recipeCreate> {
 
                   // Validate all form fields
                   if (!_formKey.currentState!.validate()) {
-                    utils.showSnackBar('Please fill in all required fields.', Colors.red);
+                    utils.showError(
+                      ErrorMessages.getValidationErrorMessage('all_fields'),
+                    );
                     return;
                   }
 
                   // Additional validations for lists
-                  if (_recipeIngredients.isEmpty || _recipeIngredients.every((ingredient) => ingredient.trim().isEmpty)) {
-                    utils.showSnackBar('Please add at least one ingredient.', Colors.red);
+                  final ingredientsError = Validators.listNotEmpty(
+                    _recipeIngredients,
+                    fieldName: 'ingredients',
+                  );
+                  if (ingredientsError != null) {
+                    utils.showError(ingredientsError);
                     return;
                   }
 
-                  if (_recipeDirections.isEmpty || _recipeDirections.every((direction) => direction.trim().isEmpty)) {
-                    utils.showSnackBar('Please add at least one direction step.', Colors.red);
+                  final directionsError = Validators.listNotEmpty(
+                    _recipeDirections,
+                    fieldName: 'directions',
+                  );
+                  if (directionsError != null) {
+                    utils.showError(directionsError);
                     return;
                   }
 
@@ -331,10 +326,18 @@ class _recipeCreateState extends State<recipeCreate> {
 
                     String? imageUrl;
                     if (pickedFile != null) {
-                      imageUrl = await uploadFile();
-                      if (imageUrl == null) {
-                        utils.showSnackBar(
-                            'Failed to upload image. Please try again.', Colors.red);
+                      try {
+                        imageUrl = await uploadFile();
+                        if (imageUrl == null) {
+                          utils.showError(
+                            'Failed to upload image. Please check your internet connection and try again.',
+                          );
+                          return;
+                        }
+                      } catch (e) {
+                        utils.showError(
+                          ErrorMessages.getGeneralErrorMessage(e),
+                        );
                         return;
                       }
                     }
@@ -357,20 +360,25 @@ class _recipeCreateState extends State<recipeCreate> {
                     // Create the recipe
                     await createRecipe(recipe);
 
+                    if (!mounted) return;
+                    
                     Navigator.of(context).pop();
                     Navigator.of(context).pushReplacement(
                       MaterialPageRoute(
                         builder: (context) => const HomePage(),
                       ),
                     );
-                    utils.showSnackBar(
-                        'Recipe created successfully!.', Colors.green);
+                    utils.showSuccess(
+                      ErrorMessages.getSuccessMessage('recipe_created'),
+                    );
                   } catch (error) {
                     // Handle any errors that occur during the process
                     debugPrint('Error: $error');
-                    utils.showSnackBar(
-                        'An error occurred. Please try again later.',
-                        Colors.red);
+                    if (mounted) {
+                      utils.showError(
+                        ErrorMessages.getGeneralErrorMessage(error),
+                      );
+                    }
                   }
                 },
                 style: ElevatedButton.styleFrom(

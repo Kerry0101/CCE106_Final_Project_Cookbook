@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cookbook/utils/colors.dart';
 import 'package:cookbook/services/firestore_functions.dart';
+import 'package:cookbook/utils/utils.dart';
 
 class SuggestCategoryDialog extends StatefulWidget {
   const SuggestCategoryDialog({super.key});
@@ -40,28 +41,14 @@ class _SuggestCategoryDialogState extends State<SuggestCategoryDialog> {
 
       if (mounted) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'The category has been submitted to the admin. Please wait for the approval.',
-              style: GoogleFonts.poppins(),
-            ),
-            backgroundColor: Colors.green,
-            duration: const Duration(seconds: 4),
-          ),
+        Utils().showSuccess(
+          'The category has been submitted to the admin. Please wait for the approval.',
+          duration: const Duration(seconds: 4),
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Failed to submit category suggestion. Please try again.',
-              style: GoogleFonts.poppins(),
-            ),
-            backgroundColor: Colors.red,
-          ),
-        );
+        Utils().showError('Failed to submit category suggestion. Please try again.');
       }
     } finally {
       if (mounted) {

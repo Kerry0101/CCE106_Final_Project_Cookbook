@@ -2,6 +2,8 @@ import 'package:cookbook/screens/auth/signup.dart';
 import 'package:cookbook/screens/home.dart';
 import 'package:cookbook/utils/utils.dart';
 import 'package:cookbook/utils/page_transitions.dart';
+import 'package:cookbook/utils/validators.dart';
+import 'package:cookbook/utils/error_messages.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
@@ -64,7 +66,9 @@ class _LogInState extends State<LogIn> {
       );
 
       if (!(userCredential.user?.emailVerified ?? false)) {
-        utils.showSnackBar('Please verify your email before logging in', Colors.red);
+        utils.showWarning(
+          'Please verify your email address before signing in. Check your inbox for the verification link.',
+        );
         return;
       }
 
@@ -90,9 +94,9 @@ class _LogInState extends State<LogIn> {
         (_) => false,
       );
     } on FirebaseAuthException catch (e) {
-      utils.showSnackBar(e.message ?? 'Authentication failed', Colors.red);
+      utils.showError(ErrorMessages.getAuthErrorMessage(e));
     } catch (e) {
-      utils.showSnackBar('An error occurred', Colors.red);
+      utils.showError(ErrorMessages.getGeneralErrorMessage(e));
       debugPrint('login error: $e');
     } finally {
       if (mounted) setState(() => _isLoggingIn = false);
@@ -165,9 +169,11 @@ class _LogInState extends State<LogIn> {
         (_) => false,
       );
     } on FirebaseAuthException catch (e) {
-      utils.showSnackBar(e.message ?? 'Google Sign-In failed', Colors.red);
+      utils.showError(ErrorMessages.getAuthErrorMessage(e));
     } catch (e) {
-      utils.showSnackBar('An error occurred during Google Sign-In', Colors.red);
+      utils.showError(
+        'Unable to sign in with Google. Please try again or use email sign-in.',
+      );
       debugPrint('Google sign-in error: $e');
     } finally {
       if (mounted) setState(() => _isGoogleSigningIn = false);
@@ -257,15 +263,8 @@ class _LogInState extends State<LogIn> {
                           borderRadius: BorderRadius.circular(8),
                         ),
                       ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter your email';
-                        }
-                        if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
-                          return 'Please enter a valid email';
-                        }
-                        return null;
-                      },
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
+                      validator: (value) => Validators.email(value),
                     ),
                   ],
                   
@@ -290,18 +289,8 @@ class _LogInState extends State<LogIn> {
                             borderRadius: BorderRadius.circular(8),
                           ),
                         ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter your phone number';
-                          }
-                          if (!value.startsWith('+')) {
-                            return 'Phone must start with country code (e.g., +1)';
-                          }
-                          if (value.length < 10) {
-                            return 'Please enter a valid phone number';
-                          }
-                          return null;
-                        },
+                        autovalidateMode: AutovalidateMode.onUserInteraction,
+                        validator: (value) => Validators.phone(value, isRequired: true),
                       ),
                     if (codeSent)
                       TextFormField(
@@ -315,15 +304,8 @@ class _LogInState extends State<LogIn> {
                             borderRadius: BorderRadius.circular(8),
                           ),
                         ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter the code';
-                          }
-                          if (value.length != 6) {
-                            return 'Code must be 6 digits';
-                          }
-                          return null;
-                        },
+                        autovalidateMode: AutovalidateMode.onUserInteraction,
+                        validator: (value) => Validators.verificationCode(value),
                       ),
                   ],
                 ],
@@ -346,25 +328,15 @@ class _LogInState extends State<LogIn> {
                       );
                       if (context.mounted) {
                         Navigator.pop(context);
-                        utils.showSnackBar(
-                          'Password reset email sent! Check your inbox.',
-                          Colors.green,
+                        utils.showSuccess(
+                          ErrorMessages.getSuccessMessage('password_reset_sent'),
                         );
                       }
                     } on FirebaseAuthException catch (e) {
-                      String message = 'Failed to send reset email';
-                      if (e.code == 'user-not-found') {
-                        message = 'No account found with this email';
-                      } else if (e.code == 'invalid-email') {
-                        message = 'Invalid email address';
-                      } else if (e.code == 'too-many-requests') {
-                        message = 'Too many requests. Please try again later';
-                      }
-                      utils.showSnackBar(message, Colors.red);
+                      utils.showError(ErrorMessages.getAuthErrorMessage(e));
                     } catch (e) {
-                      utils.showSnackBar(
-                        'An error occurred. Please try again.',
-                        Colors.red,
+                      utils.showError(
+                        ErrorMessages.getGeneralErrorMessage(e),
                       );
                     }
                   } else {
@@ -382,9 +354,8 @@ class _LogInState extends State<LogIn> {
                             .get();
                         
                         if (usersSnapshot.docs.isEmpty) {
-                          utils.showSnackBar(
-                            'No account found with this phone number. Please check and try again.',
-                            Colors.red,
+                          utils.showError(
+                            'No account found with this phone number. Please check your phone number and try again, or use email reset instead.',
                           );
                           return;
                         }
@@ -396,9 +367,8 @@ class _LogInState extends State<LogIn> {
                             // Auto-verification (Android only)
                           },
                           verificationFailed: (FirebaseAuthException e) {
-                            utils.showSnackBar(
-                              e.message ?? 'Verification failed',
-                              Colors.red,
+                            utils.showError(
+                              ErrorMessages.getAuthErrorMessage(e),
                             );
                           },
                           codeSent: (String verId, int? resendToken) {
@@ -406,9 +376,8 @@ class _LogInState extends State<LogIn> {
                               codeSent = true;
                               verificationId = verId;
                             });
-                            utils.showSnackBar(
+                            utils.showSuccess(
                               'Verification code sent to your phone!',
-                              Colors.green,
                             );
                           },
                           codeAutoRetrievalTimeout: (String verId) {
@@ -417,9 +386,8 @@ class _LogInState extends State<LogIn> {
                           timeout: const Duration(seconds: 60),
                         );
                       } catch (e) {
-                        utils.showSnackBar(
-                          'Failed to verify phone number. Please try again.',
-                          Colors.red,
+                        utils.showError(
+                          ErrorMessages.getGeneralErrorMessage(e),
                         );
                       }
                     } else {
@@ -438,9 +406,8 @@ class _LogInState extends State<LogIn> {
                             .get();
                         
                         if (usersSnapshot.docs.isEmpty) {
-                          utils.showSnackBar(
-                            'No account found with this phone number',
-                            Colors.red,
+                          utils.showError(
+                            'No account found with this phone number. Please check and try again.',
                           );
                           return;
                         }
@@ -454,20 +421,17 @@ class _LogInState extends State<LogIn> {
                         
                         if (context.mounted) {
                           Navigator.pop(context);
-                          utils.showSnackBar(
-                            'Password reset link sent to your email!',
-                            Colors.green,
+                          utils.showSuccess(
+                            ErrorMessages.getSuccessMessage('password_reset_sent'),
                           );
                         }
                       } on FirebaseAuthException catch (e) {
-                        utils.showSnackBar(
-                          e.message ?? 'Invalid verification code',
-                          Colors.red,
+                        utils.showError(
+                          ErrorMessages.getAuthErrorMessage(e),
                         );
                       } catch (e) {
-                        utils.showSnackBar(
-                          'An error occurred. Please try again.',
-                          Colors.red,
+                        utils.showError(
+                          ErrorMessages.getGeneralErrorMessage(e),
                         );
                       }
                     }
@@ -534,8 +498,13 @@ class _LogInState extends State<LogIn> {
                         TextFormField(
                           controller: _email,
                           keyboardType: TextInputType.emailAddress,
-                          decoration: const InputDecoration(labelText: 'Email', prefixIcon: Icon(Icons.email)),
-                          validator: (v) => v == null || v.trim().isEmpty ? 'Please enter your email' : null,
+                          decoration: const InputDecoration(
+                            labelText: 'Email',
+                            prefixIcon: Icon(Icons.email),
+                            hintText: 'Enter your email address',
+                          ),
+                          autovalidateMode: AutovalidateMode.onUserInteraction,
+                          validator: (v) => Validators.email(v),
                         ),
                         const SizedBox(height: 16),
                         TextFormField(
@@ -551,7 +520,8 @@ class _LogInState extends State<LogIn> {
                               onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                             ),
                           ),
-                          validator: (v) => v == null || v.isEmpty ? 'Please enter your password' : null,
+                          autovalidateMode: AutovalidateMode.onUserInteraction,
+                          validator: (v) => Validators.password(v),
                         ),
                         const SizedBox(height: 12),
                         Row(

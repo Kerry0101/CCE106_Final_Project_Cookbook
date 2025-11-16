@@ -5,6 +5,7 @@ import 'package:cookbook/services/review_service.dart';
 import 'package:cookbook/models/review.dart';
 import 'package:cookbook/utils/colors.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cookbook/utils/utils.dart';
 
 class RecipeReviewsPage extends StatefulWidget {
   final String recipeId;
@@ -61,16 +62,7 @@ class _RecipeReviewsPageState extends State<RecipeReviewsPage> {
 
   void _showAddReviewBottomSheet({Review? reviewToEdit}) {
     if (_isOwnRecipe()) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'You cannot rate your own recipe',
-            style: GoogleFonts.lato(),
-          ),
-          backgroundColor: Colors.orange,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      Utils().showWarning('You cannot rate your own recipe');
       return;
     }
 
@@ -86,17 +78,10 @@ class _RecipeReviewsPageState extends State<RecipeReviewsPage> {
         onReviewSubmitted: () {
           setState(() {});
           Navigator.pop(context);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                reviewToEdit != null 
-                    ? 'Review updated successfully!'
-                    : 'Thank you for your review!',
-                style: GoogleFonts.lato(),
-              ),
-              backgroundColor: Colors.green,
-              behavior: SnackBarBehavior.floating,
-            ),
+          Utils().showSuccess(
+            reviewToEdit != null 
+                ? 'Review updated successfully!'
+                : 'Thank you for your review!',
           );
         },
       ),
@@ -105,6 +90,8 @@ class _RecipeReviewsPageState extends State<RecipeReviewsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+    
     return FutureBuilder<Map<String, dynamic>>(
       future: ReviewService.getReviewStats(widget.recipeId),
       builder: (context, statsSnapshot) {
@@ -113,174 +100,221 @@ class _RecipeReviewsPageState extends State<RecipeReviewsPage> {
         final totalReviews = stats?['totalReviews'] ?? widget.reviewCount;
         final distribution = stats?['distribution'] as Map<int, int>? ?? {};
 
-        return SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Rating Summary Card
-              Container(
-                margin: const EdgeInsets.all(20),
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.grey[300]!, width: 1),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.grey.withOpacity(0.1),
-                      spreadRadius: 1,
-                      blurRadius: 5,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    Row(
-                      children: [
-                        // Average Rating
-                        Expanded(
-                          flex: 2,
-                          child: Column(
-                            children: [
-                              Text(
-                                totalReviews > 0 ? averageRating.toStringAsFixed(1) : '--',
-                                style: GoogleFonts.lato(
-                                  fontSize: 56,
-                                  fontWeight: FontWeight.bold,
-                                  color: primaryColor,
-                                ),
-                              ),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: List.generate(5, (index) {
-                                  return Icon(
-                                    index < averageRating ? Icons.star : Icons.star_border,
-                                    color: Colors.amber,
-                                    size: 24,
-                                  );
-                                }),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                totalReviews > 0
-                                    ? '${_formatReviewCount(totalReviews)} ${totalReviews == 1 ? 'rating' : 'ratings'}'
-                                    : 'No ratings yet',
-                                style: GoogleFonts.lato(
-                                  fontSize: 14,
-                                  color: Colors.grey[600],
-                                ),
-                              ),
-                            ],
-                          ),
+        return StreamBuilder<List<Review>>(
+          stream: ReviewService.getRecipeReviews(widget.recipeId),
+          builder: (context, reviewsSnapshot) {
+            // Check if user has already reviewed
+            final allReviews = reviewsSnapshot.data ?? [];
+            final userReview = allReviews.firstWhere(
+              (review) => review.userId == currentUserId,
+              orElse: () => Review(
+                reviewId: '',
+                recipeId: '',
+                userId: '',
+                userName: '',
+                rating: 0,
+                comment: null,
+                createdAt: DateTime.now(),
+              ),
+            );
+            final hasUserReviewed = userReview.reviewId.isNotEmpty;
+
+            return SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Rating Summary Card
+                  Container(
+                    margin: const EdgeInsets.all(20),
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.grey[300]!, width: 1),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.grey.withOpacity(0.1),
+                          spreadRadius: 1,
+                          blurRadius: 5,
+                          offset: const Offset(0, 2),
                         ),
-                        // Rating Distribution
-                        if (totalReviews > 0)
-                          Expanded(
-                            flex: 3,
-                            child: Column(
-                              children: List.generate(5, (index) {
-                                final star = 5 - index;
-                                final count = distribution[star] ?? 0;
-                                final percentage = totalReviews > 0 ? (count / totalReviews) : 0.0;
-                                return Padding(
-                                  padding: const EdgeInsets.symmetric(vertical: 2),
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          children: [
+                            // Average Rating
+                            Expanded(
+                              flex: 2,
+                              child: Column(
+                                children: [
+                                  Text(
+                                    totalReviews > 0 ? averageRating.toStringAsFixed(1) : '--',
+                                    style: GoogleFonts.lato(
+                                      fontSize: 56,
+                                      fontWeight: FontWeight.bold,
+                                      color: primaryColor,
+                                    ),
+                                  ),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: List.generate(5, (index) {
+                                      return Icon(
+                                        index < averageRating ? Icons.star : Icons.star_border,
+                                        color: Colors.amber,
+                                        size: 24,
+                                      );
+                                    }),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    totalReviews > 0
+                                        ? '${_formatReviewCount(totalReviews)} ${totalReviews == 1 ? 'rating' : 'ratings'}'
+                                        : 'No ratings yet',
+                                    style: GoogleFonts.lato(
+                                      fontSize: 14,
+                                      color: Colors.grey[600],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            // Rating Distribution
+                            if (totalReviews > 0)
+                              Expanded(
+                                flex: 3,
+                                child: Column(
+                                  children: List.generate(5, (index) {
+                                    final star = 5 - index;
+                                    final count = distribution[star] ?? 0;
+                                    final percentage = totalReviews > 0 ? (count / totalReviews) : 0.0;
+                                    return Padding(
+                                      padding: const EdgeInsets.symmetric(vertical: 2),
+                                      child: Row(
+                                        children: [
+                                          Text(
+                                            '$star',
+                                            style: GoogleFonts.lato(fontSize: 12),
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Icon(Icons.star, size: 12, color: Colors.amber),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            child: ClipRRect(
+                                              borderRadius: BorderRadius.circular(4),
+                                              child: LinearProgressIndicator(
+                                                value: percentage,
+                                                backgroundColor: Colors.grey[200],
+                                                valueColor: AlwaysStoppedAnimation<Color>(primaryColor),
+                                                minHeight: 8,
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          SizedBox(
+                                            width: 30,
+                                            child: Text(
+                                              count.toString(),
+                                              style: GoogleFonts.lato(
+                                                fontSize: 12,
+                                                color: Colors.grey[600],
+                                              ),
+                                              textAlign: TextAlign.right,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  }),
+                                ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                        // Add Review Button or Already Reviewed Message
+                        if (!_isOwnRecipe())
+                          hasUserReviewed
+                              ? Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                                  decoration: BoxDecoration(
+                                    color: Colors.green.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: Colors.green.withOpacity(0.3),
+                                      width: 1,
+                                    ),
+                                  ),
                                   child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
+                                      Icon(
+                                        Icons.check_circle,
+                                        color: Colors.green,
+                                        size: 20,
+                                      ),
+                                      const SizedBox(width: 8),
                                       Text(
-                                        '$star',
-                                        style: GoogleFonts.lato(fontSize: 12),
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Icon(Icons.star, size: 12, color: Colors.amber),
-                                      const SizedBox(width: 8),
-                                      Expanded(
-                                        child: ClipRRect(
-                                          borderRadius: BorderRadius.circular(4),
-                                          child: LinearProgressIndicator(
-                                            value: percentage,
-                                            backgroundColor: Colors.grey[200],
-                                            valueColor: AlwaysStoppedAnimation<Color>(primaryColor),
-                                            minHeight: 8,
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      SizedBox(
-                                        width: 30,
-                                        child: Text(
-                                          count.toString(),
-                                          style: GoogleFonts.lato(
-                                            fontSize: 12,
-                                            color: Colors.grey[600],
-                                          ),
-                                          textAlign: TextAlign.right,
+                                        'You\'ve reviewed this recipe',
+                                        style: GoogleFonts.lato(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.green[700],
                                         ),
                                       ),
                                     ],
                                   ),
-                                );
-                              }),
-                            ),
-                          ),
+                                )
+                              : SizedBox(
+                                  width: double.infinity,
+                                  child: ElevatedButton.icon(
+                                    onPressed: _showAddReviewBottomSheet,
+                                    icon: const Icon(Icons.rate_review, color: Colors.white),
+                                    label: Text(
+                                      'Write a Review',
+                                      style: GoogleFonts.lato(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: primaryColor,
+                                      padding: const EdgeInsets.symmetric(vertical: 14),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                  ),
+                                ),
                       ],
                     ),
-                    const SizedBox(height: 20),
-                    // Add Review Button
-                    if (!_isOwnRecipe())
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          onPressed: _showAddReviewBottomSheet,
-                          icon: const Icon(Icons.rate_review, color: Colors.white),
-                          label: Text(
-                            'Write a Review',
-                            style: GoogleFonts.lato(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: primaryColor,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-
-              // Reviews List
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Text(
-                  'Reviews',
-                  style: GoogleFonts.lato(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
                   ),
-                ),
-              ),
-              const SizedBox(height: 12),
 
-              StreamBuilder<List<Review>>(
-                stream: ReviewService.getRecipeReviews(widget.recipeId),
-                builder: (context, reviewsSnapshot) {
-                  if (reviewsSnapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(
+                  // Reviews List
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Text(
+                      'Reviews',
+                      style: GoogleFonts.lato(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Display reviews
+                  if (reviewsSnapshot.connectionState == ConnectionState.waiting)
+                    const Center(
                       child: Padding(
                         padding: EdgeInsets.all(40),
                         child: CircularProgressIndicator(),
                       ),
-                    );
-                  }
-
-                  if (!reviewsSnapshot.hasData || reviewsSnapshot.data!.isEmpty) {
-                    return Center(
+                    )
+                  else if (!reviewsSnapshot.hasData || reviewsSnapshot.data!.isEmpty)
+                    Center(
                       child: Padding(
                         padding: const EdgeInsets.all(40),
                         child: Column(
@@ -309,30 +343,44 @@ class _RecipeReviewsPageState extends State<RecipeReviewsPage> {
                           ],
                         ),
                       ),
-                    );
-                  }
-
-                  final reviews = reviewsSnapshot.data!;
-                  return ListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    itemCount: reviews.length,
-                    itemBuilder: (context, index) {
-                      final review = reviews[index];
-                      return _buildReviewCard(review);
-                    },
-                  );
-                },
+                    )
+                  else
+                    Builder(
+                      builder: (context) {
+                        // Separate user's review and others
+                        final otherReviews = allReviews
+                            .where((review) => review.userId != currentUserId)
+                            .toList();
+                        
+                        return ListView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          itemCount: hasUserReviewed 
+                              ? otherReviews.length + 1 
+                              : otherReviews.length,
+                          itemBuilder: (context, index) {
+                            // Show user's review first
+                            if (index == 0 && hasUserReviewed) {
+                              return _buildReviewCard(userReview, isHighlighted: true);
+                            }
+                            // Show other reviews
+                            final reviewIndex = hasUserReviewed ? index - 1 : index;
+                            return _buildReviewCard(otherReviews[reviewIndex]);
+                          },
+                        );
+                      },
+                    ),
+                ],
               ),
-            ],
-          ),
+            );
+          },
         );
       },
     );
   }
 
-  Widget _buildReviewCard(Review review) {
+  Widget _buildReviewCard(Review review, {bool isHighlighted = false}) {
     final currentUserId = FirebaseAuth.instance.currentUser?.uid;
     final isOwnReview = currentUserId == review.userId;
 
@@ -581,29 +629,11 @@ class _RecipeReviewsPageState extends State<RecipeReviewsPage> {
               try {
                 await ReviewService.deleteReview(widget.recipeId, review.reviewId);
                 if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        'Review deleted successfully',
-                        style: GoogleFonts.lato(),
-                      ),
-                      backgroundColor: Colors.green,
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
+                  Utils().showSuccess('Review deleted successfully');
                 }
               } catch (e) {
                 if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        'Failed to delete review: $e',
-                        style: GoogleFonts.lato(),
-                      ),
-                      backgroundColor: Colors.red,
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
+                  Utils().showError('Failed to delete review. Please try again.');
                 }
               }
             },
@@ -654,15 +684,7 @@ class _AddReviewBottomSheetState extends State<_AddReviewBottomSheet> {
 
   Future<void> _submitReview() async {
     if (_rating == 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Please select a rating',
-            style: GoogleFonts.lato(),
-          ),
-          backgroundColor: Colors.orange,
-        ),
-      );
+      Utils().showWarning('Please select a rating');
       return;
     }
 
@@ -696,15 +718,7 @@ class _AddReviewBottomSheetState extends State<_AddReviewBottomSheet> {
       widget.onReviewSubmitted();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Failed to submit review: $e',
-              style: GoogleFonts.lato(),
-            ),
-            backgroundColor: Colors.red,
-          ),
-        );
+        Utils().showError('Failed to submit review. Please try again.');
       }
     } finally {
       if (mounted) {

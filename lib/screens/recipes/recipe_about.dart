@@ -102,12 +102,9 @@ class _RecipeAboutState extends State<RecipeAbout> with SingleTickerProviderStat
                                     deleteRecipe(widget.recipe.recipeID);
                                     Navigator.of(context)
                                         .popUntil((route) => route.isFirst);
-                                    utils.showSnackBar(
-                                        'Recipe has been deleted.', Colors.green);
+                                    utils.showSuccess('Recipe has been deleted.');
                                   } catch (e) {
-                                    utils.showSnackBar(
-                                        'An error occurred. Please try again later.',
-                                        Colors.red);
+                                    utils.showError('An error occurred. Please try again later.');
                                   }
                                 },
                                 child: const Text("Delete"),

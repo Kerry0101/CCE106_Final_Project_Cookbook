@@ -5,6 +5,7 @@ import 'package:cookbook/services/review_service.dart';
 import 'package:cookbook/models/review.dart';
 import 'package:cookbook/utils/colors.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cookbook/utils/utils.dart';
 
 class RecipeRatingWidget extends StatefulWidget {
   final String recipeId;
@@ -31,16 +32,7 @@ class _RecipeRatingWidgetState extends State<RecipeRatingWidget> {
 
   void _showRatingBottomSheet() {
     if (_isOwnRecipe()) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'You cannot rate your own recipe',
-            style: GoogleFonts.poppins(),
-          ),
-          backgroundColor: Colors.orange,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      Utils().showWarning('You cannot rate your own recipe');
       return;
     }
 
@@ -55,16 +47,7 @@ class _RecipeRatingWidgetState extends State<RecipeRatingWidget> {
         onRatingSubmitted: () {
           setState(() {});
           Navigator.pop(context);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'Thank you for your review!',
-                style: GoogleFonts.poppins(),
-              ),
-              backgroundColor: Colors.green,
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
+          Utils().showSuccess('Thank you for your review!');
         },
       ),
     );
@@ -188,15 +171,7 @@ class _RatingBottomSheetState extends State<_RatingBottomSheet> {
 
   Future<void> _submitReview() async {
     if (_rating == 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Please select a rating',
-            style: GoogleFonts.poppins(),
-          ),
-          backgroundColor: Colors.orange,
-        ),
-      );
+      Utils().showWarning('Please select a rating');
       return;
     }
 
@@ -216,15 +191,7 @@ class _RatingBottomSheetState extends State<_RatingBottomSheet> {
       widget.onRatingSubmitted();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Failed to submit review. Please try again.',
-              style: GoogleFonts.poppins(),
-            ),
-            backgroundColor: Colors.red,
-          ),
-        );
+        Utils().showError('Failed to submit review. Please try again.');
       }
     } finally {
       if (mounted) {
