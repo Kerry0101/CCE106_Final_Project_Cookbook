@@ -13,6 +13,8 @@ import 'package:cookbook/screens/recipes/recipe_create.dart';
 import 'package:cookbook/screens/shopping_lists.dart';
 import 'package:cookbook/screens/admin/moderate_recipes_page.dart';
 import 'package:cookbook/screens/admin/review_categories.dart';
+import 'package:cookbook/screens/profile/profile_page.dart';
+import 'package:cookbook/screens/profile/admin_profile_management.dart';
 import 'package:cookbook/utils/colors.dart';
 
 Widget buildDrawer(BuildContext context) {
@@ -85,7 +87,24 @@ Widget buildDrawer(BuildContext context) {
             ),
             ListTile(
               leading: Icon(
-                Icons.explore,
+                Icons.person,
+                color: primaryColor,
+              ),
+              title: Text(
+                'My Profile',
+                style: GoogleFonts.lato(fontWeight: FontWeight.w600),
+              ),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const ProfilePage()),
+                );
+              },
+            ),
+            Divider(color: primaryColor.withOpacity(0.2), height: 1),
+            ListTile(
+              leading: Icon(
+                Icons.search,
                 color: primaryColor,
               ),
               title: Text(
@@ -185,6 +204,24 @@ Widget buildDrawer(BuildContext context) {
                             ),
                           ),
                         ),
+                      ),
+                      ListTile(
+                        leading: Icon(
+                          Icons.manage_accounts,
+                          color: primaryColor,
+                        ),
+                        title: Text(
+                          'User Management',
+                          style: GoogleFonts.lato(),
+                        ),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const AdminProfileManagement(),
+                            ),
+                          );
+                        },
                       ),
                       ListTile(
                         leading: Icon(

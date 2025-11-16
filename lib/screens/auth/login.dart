@@ -156,9 +156,21 @@ class _LogInState extends State<LogIn> {
             .set({
           'name': googleUser.displayName ?? 'User',
           'email': googleUser.email,
+          'photoURL': googleUser.photoUrl ?? userCredential.user?.photoURL,
           'role': 'user',
           'createdAt': FieldValue.serverTimestamp(),
         });
+      } else {
+        // Update existing user's photo if they don't have one
+        if (userDoc.data()?['photoURL'] == null && googleUser.photoUrl != null) {
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(userCredential.user!.uid)
+              .update({
+            'photoURL': googleUser.photoUrl,
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+        }
       }
 
       if (!mounted) return;

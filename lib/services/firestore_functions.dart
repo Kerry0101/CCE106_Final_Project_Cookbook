@@ -183,6 +183,22 @@ Stream<DocumentSnapshot<Map<String, dynamic>>> getUserDetails(String userID) {
 //submit category suggestion
 Future<void> submitCategorySuggestion(String categoryName, String categoryDescription) async {
   try {
+    // Check for duplicate category name (case-insensitive) with pending status
+    final duplicateCheck = await FirebaseFirestore.instance
+        .collection('category_suggestions')
+        .where('suggestedBy', isEqualTo: userID)
+        .where('status', isEqualTo: 'pending')
+        .get();
+    
+    // Check if any pending suggestion has the same name (case-insensitive)
+    final normalizedName = categoryName.toLowerCase().trim();
+    for (var doc in duplicateCheck.docs) {
+      final existingName = (doc.data()['categoryName'] as String).toLowerCase().trim();
+      if (existingName == normalizedName) {
+        throw Exception('duplicate_category');
+      }
+    }
+    
     final docCategory = FirebaseFirestore.instance.collection('category_suggestions').doc();
     
     await docCategory.set({

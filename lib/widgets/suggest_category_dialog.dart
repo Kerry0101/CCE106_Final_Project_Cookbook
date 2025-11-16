@@ -48,7 +48,16 @@ class _SuggestCategoryDialogState extends State<SuggestCategoryDialog> {
       }
     } catch (e) {
       if (mounted) {
-        Utils().showError('Failed to submit category suggestion. Please try again.');
+        // Check if it's a duplicate category error
+        if (e.toString().contains('duplicate_category')) {
+          Navigator.pop(context);
+          Utils().showWarning(
+            'This category has already been submitted to the admin and is waiting for approval.',
+            duration: const Duration(seconds: 4),
+          );
+        } else {
+          Utils().showError('Failed to submit category suggestion. Please try again.');
+        }
       }
     } finally {
       if (mounted) {

@@ -1,17 +1,3 @@
-import 'package:flutter/material.dart';
+// This file is deprecated. Use ProfilePage from screens/profile/profile_page.dart
+export 'profile/profile_page.dart';
 
-class MyProfile extends StatelessWidget {
-  const MyProfile({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("PROFILE PAGE"),
-      ),
-      body: const Center(
-        child: Text("Profile page"),
-      ),
-    );
-  }
-}

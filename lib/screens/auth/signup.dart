@@ -4,7 +4,6 @@ import 'package:cookbook/utils/utils.dart';
 import 'package:cookbook/utils/page_transitions.dart';
 import 'package:cookbook/utils/validators.dart';
 import 'package:cookbook/utils/error_messages.dart';
-import 'package:email_validator/email_validator.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
