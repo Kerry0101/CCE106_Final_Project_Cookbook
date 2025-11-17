@@ -24,7 +24,7 @@ class _FavoritesListState extends State<FavoritesList> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: Text(
-          'Favourites',
+          'Favorites',
           style: GoogleFonts.lato(
             fontWeight: FontWeight.bold,
             color: primaryColor,
@@ -80,7 +80,7 @@ class _FavoritesListState extends State<FavoritesList> {
                       ),
                       const SizedBox(height: 24),
                       Text(
-                        'No favourites yet',
+                        'No favorites yet',
                         style: GoogleFonts.lato(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,

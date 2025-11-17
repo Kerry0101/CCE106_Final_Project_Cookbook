@@ -251,7 +251,7 @@ Widget buildDrawer(BuildContext context, {String? currentRoute}) {
                 color: route == '/shopping-lists' ? primaryColor : primaryColor.withOpacity(0.7),
               ),
               title: Text(
-                'Grocery List',
+                'Shopping List',
                 style: GoogleFonts.lato(
                   fontWeight: route == '/shopping-lists' ? FontWeight.w700 : FontWeight.w400,
                   color: route == '/shopping-lists' ? primaryColor : Colors.black87,
@@ -275,7 +275,7 @@ Widget buildDrawer(BuildContext context, {String? currentRoute}) {
                 color: route == '/favorites' ? primaryColor : primaryColor.withOpacity(0.7),
               ),
               title: Text(
-                'Favourites',
+                'Favorites',
                 style: GoogleFonts.lato(
                   fontWeight: route == '/favorites' ? FontWeight.w700 : FontWeight.w400,
                   color: route == '/favorites' ? primaryColor : Colors.black87,
