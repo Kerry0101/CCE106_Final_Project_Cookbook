@@ -497,6 +497,24 @@ class _RecipeReviewsPageState extends State<RecipeReviewsPage> {
                               ),
                             ),
                           ],
+                          // Show days remaining to edit/delete for own reviews
+                          if (isOwnReview && daysSinceCreation <= 30) ...[
+                            Text(
+                              ' • ',
+                              style: GoogleFonts.lato(
+                                fontSize: 11,
+                                color: Colors.grey[500],
+                              ),
+                            ),
+                            Text(
+                              '${30 - daysSinceCreation} days left to edit',
+                              style: GoogleFonts.lato(
+                                fontSize: 10,
+                                color: Colors.orange[700],
+                                fontStyle: FontStyle.italic,
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ],
