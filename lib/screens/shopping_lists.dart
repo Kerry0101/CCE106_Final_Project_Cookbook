@@ -26,7 +26,7 @@ class _ShoppingListsState extends State<ShoppingLists> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: Text(
-          'Shopping List',
+          'Grocery List',
           style: GoogleFonts.lato(
             fontWeight: FontWeight.bold,
             color: primaryColor,
@@ -91,7 +91,7 @@ class _ShoppingListsState extends State<ShoppingLists> {
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 40),
                           child: Text(
-                            'Add recipes to your shopping list or tap + to add items manually',
+                            'Add recipes to your grocery list or tap + to add items manually',
                             style: GoogleFonts.lato(
                               fontSize: 16,
                               color: Colors.black54,

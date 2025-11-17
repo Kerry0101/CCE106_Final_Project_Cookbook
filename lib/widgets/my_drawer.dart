@@ -251,7 +251,7 @@ Widget buildDrawer(BuildContext context, {String? currentRoute}) {
                 color: route == '/shopping-lists' ? primaryColor : primaryColor.withOpacity(0.7),
               ),
               title: Text(
-                'Shopping List',
+                'Grocery List',
                 style: GoogleFonts.lato(
                   fontWeight: route == '/shopping-lists' ? FontWeight.w700 : FontWeight.w400,
                   color: route == '/shopping-lists' ? primaryColor : Colors.black87,
