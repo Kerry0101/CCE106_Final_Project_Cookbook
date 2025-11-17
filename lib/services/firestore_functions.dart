@@ -238,17 +238,42 @@ Stream<List<Map<String, dynamic>>> readCategorySuggestions({String? status}) {
 //approve category suggestion
 Future<void> approveCategorySuggestion(String suggestionId) async {
   try {
-    final docCategory = FirebaseFirestore.instance
+    // Get the suggestion details
+    final suggestionDoc = await FirebaseFirestore.instance
         .collection('category_suggestions')
-        .doc(suggestionId);
+        .doc(suggestionId)
+        .get();
     
-    await docCategory.update({
+    if (!suggestionDoc.exists) {
+      throw Exception('Suggestion not found');
+    }
+    
+    final categoryName = suggestionDoc.data()?['categoryName'] as String;
+    final description = suggestionDoc.data()?['description'] as String? ?? '';
+    
+    // Add category to the main categories collection
+    await FirebaseFirestore.instance
+        .collection('categories')
+        .add({
+      'name': categoryName,
+      'description': description,
+      'createdAt': FieldValue.serverTimestamp(),
+      'createdBy': userID,
+      'fromSuggestion': true,
+      'suggestionId': suggestionId,
+    });
+    
+    // Update suggestion status
+    await FirebaseFirestore.instance
+        .collection('category_suggestions')
+        .doc(suggestionId)
+        .update({
       'status': 'approved',
       'reviewedAt': FieldValue.serverTimestamp(),
       'reviewedBy': userID,
     });
     
-    debugPrint('Category suggestion approved');
+    debugPrint('Category suggestion approved and added to categories');
   } catch (e) {
     debugPrint('Error approving category suggestion: $e');
     rethrow;
@@ -288,6 +313,86 @@ Future<int> countPendingCategorySuggestions() async {
   } catch (e) {
     debugPrint('Error counting pending category suggestions: $e');
     return 0;
+  }
+}
+
+//create category directly (admin only)
+Future<void> createCategory(String categoryName, String description) async {
+  try {
+    // Check if category already exists (case-insensitive)
+    final existingCategories = await FirebaseFirestore.instance
+        .collection('categories')
+        .get();
+    
+    final normalizedName = categoryName.toLowerCase().trim();
+    for (var doc in existingCategories.docs) {
+      final existingName = (doc.data()['name'] as String).toLowerCase().trim();
+      if (existingName == normalizedName) {
+        throw Exception('duplicate_category');
+      }
+    }
+    
+    // Add the category
+    await FirebaseFirestore.instance
+        .collection('categories')
+        .add({
+      'name': categoryName,
+      'description': description,
+      'createdAt': FieldValue.serverTimestamp(),
+      'createdBy': userID,
+      'fromSuggestion': false,
+    });
+    
+    debugPrint('Category created successfully by admin');
+  } catch (e) {
+    debugPrint('Error creating category: $e');
+    rethrow;
+  }
+}
+
+//get all categories
+Stream<List<String>> readCategories() {
+  return FirebaseFirestore.instance
+      .collection('categories')
+      .orderBy('name')
+      .snapshots()
+      .map((snapshot) {
+    final categories = snapshot.docs
+        .map((doc) => doc.data()['name'] as String)
+        .toList();
+    
+    // Add default categories if none exist
+    if (categories.isEmpty) {
+      return [
+        'Appetizer',
+        'Breakfast',
+        'Lunch',
+        'Dinner',
+        'Dessert',
+        'Snack',
+        'Beverage',
+        'Soup',
+        'Salad',
+        'Main Course',
+      ];
+    }
+    
+    return categories;
+  });
+}
+
+//delete category (admin only)
+Future<void> deleteCategory(String categoryId) async {
+  try {
+    await FirebaseFirestore.instance
+        .collection('categories')
+        .doc(categoryId)
+        .delete();
+    
+    debugPrint('Category deleted successfully');
+  } catch (e) {
+    debugPrint('Error deleting category: $e');
+    rethrow;
   }
 }
 

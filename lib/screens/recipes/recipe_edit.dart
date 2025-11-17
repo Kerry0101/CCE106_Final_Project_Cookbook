@@ -404,28 +404,34 @@ class _recipeEditState extends State<recipeEdit> {
                     children: [
                       Padding(
                         padding: const EdgeInsets.all(2.0),
-                        child: DropdownButtonFormField<String>(
-                          initialValue: _recipeSelectedCategory,
-                          decoration: const InputDecoration(
-                            border: OutlineInputBorder(),
-                            hintText: "Select Course",
-                          ),
-                          items: categories.map((String category) {
-                            //variable _courseList for the options
-                            return DropdownMenuItem<String>(
-                              value: category,
-                              child: Text(category),
+                        child: StreamBuilder<List<String>>(
+                          stream: readCategories(),
+                          builder: (context, snapshot) {
+                            final categoriesList = snapshot.data ?? defaultCategories;
+                            
+                            return DropdownButtonFormField<String>(
+                              initialValue: _recipeSelectedCategory,
+                              decoration: const InputDecoration(
+                                border: OutlineInputBorder(),
+                                hintText: "Select Course",
+                              ),
+                              items: categoriesList.map((String category) {
+                                return DropdownMenuItem<String>(
+                                  value: category,
+                                  child: Text(category),
+                                );
+                              }).toList(),
+                              onChanged: (newValue) {
+                                setState(() {
+                                  _recipeSelectedCategory = newValue!;
+                                });
+                              },
+                              validator: (value) => Validators.requiredSelection(
+                                value,
+                                fieldName: 'a category',
+                              ),
                             );
-                          }).toList(),
-                          onChanged: (newValue) {
-                            setState(() {
-                              _recipeSelectedCategory = newValue!;
-                            });
                           },
-                          validator: (value) => Validators.requiredSelection(
-                            value,
-                            fieldName: 'a category',
-                          ),
                         ),
                       ),
                     ],

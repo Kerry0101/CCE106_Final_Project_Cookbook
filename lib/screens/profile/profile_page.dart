@@ -7,6 +7,7 @@ import 'package:cookbook/models/user_profile.dart';
 import 'package:cookbook/services/user_profile_service.dart';
 import 'package:cookbook/utils/colors.dart';
 import 'package:cookbook/utils/utils.dart';
+import 'package:cookbook/widgets/my_drawer.dart';
 import 'package:cookbook/screens/profile/edit_profile_dialog.dart';
 import 'package:cookbook/screens/profile/change_password_dialog.dart';
 
@@ -123,6 +124,7 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      drawer: buildDrawer(context, currentRoute: '/profile'),
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         title: Text(

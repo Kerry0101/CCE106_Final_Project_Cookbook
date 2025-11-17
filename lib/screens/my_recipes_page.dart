@@ -19,7 +19,7 @@ class _MyRecipesPageState extends State<MyRecipesPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      drawer: buildDrawer(context),
+      drawer: buildDrawer(context, currentRoute: '/my-recipes'),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,

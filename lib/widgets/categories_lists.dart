@@ -60,18 +60,19 @@ class _CategoriesListState extends State<CategoriesList> {
                 ),
               ),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 6),
             SizedBox(
-              width: 70,
+              width: 72,
               child: Text(
                 widget.labelText,
                 textAlign: TextAlign.center,
                 style: GoogleFonts.poppins(
-                  fontSize: 9,
+                  fontSize: 10,
                   fontWeight: widget.isSelected ? FontWeight.w700 : FontWeight.w600,
                   color: widget.isSelected
                       ? const Color(0xFF008B8B)
                       : Colors.black87,
+                  height: 1.2,
                 ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,

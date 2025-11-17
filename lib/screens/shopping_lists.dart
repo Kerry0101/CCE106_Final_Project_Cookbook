@@ -1,6 +1,8 @@
 import 'package:cookbook/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:cookbook/widgets/my_drawer.dart';
+import 'package:cookbook/widgets/shopping_list_grouped_view.dart';
 
 import 'package:cookbook/models/shopping_lists.dart';
 import 'package:cookbook/utils/colors.dart';
@@ -18,109 +20,94 @@ class _ShoppingListsState extends State<ShoppingLists> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      drawer: buildDrawer(context, currentRoute: '/shopping-lists'),
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        backgroundColor: primaryColor,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
         title: Text(
           'Shopping List',
           style: GoogleFonts.lato(
-            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            color: primaryColor,
+            fontSize: 22,
           ),
         ),
-        iconTheme: const IconThemeData(
-          color: Colors.white,
-        ),
+        iconTheme: IconThemeData(color: primaryColor),
       ),
-      body: StreamBuilder<List<ShoppingList>>(
-        stream: readShoppingLists(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          } else {
-            final List<ShoppingList>? items = snapshot.data;
-            if (items!.isEmpty) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(
-                      Icons.shopping_basket_rounded,
-                      size: 50,
-                      color: Colors.grey,
-                    ),
-                    const SizedBox(height: 20),
-                    Text(
-                      'No items yet',
-                      style: GoogleFonts.lato(
-                        fontSize: 18,
-                        color: Colors.grey,
+      body: Container(
+        height: double.infinity,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            colors: [bgc1, bgc2, bgc3, bgc4],
+          ),
+        ),
+        child: SafeArea(
+          child: StreamBuilder<List<ShoppingList>>(
+            stream: readShoppingLists(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return Center(
+                  child: CircularProgressIndicator(color: primaryColor),
+                );
+              } else if (snapshot.hasError) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.error_outline, size: 64, color: Colors.red[300]),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Error: ${snapshot.error}',
+                        style: GoogleFonts.lato(color: Colors.red),
+                        textAlign: TextAlign.center,
                       ),
-                    ),
-                  ],
-                ),
-              );
-            }
-            return ListView.builder(
-              itemCount: items.length,
-              itemBuilder: (context, index) {
-                final shoppingItem = items[index];
-                return ListTile(
-                  leading: Checkbox(
-                    value: shoppingItem.isChecked,
-                    onChanged: (bool? value) {
-                      shoppingItem.isChecked = value ?? false;
-                      updateShoppingList(shoppingItem, shoppingItem.itemID);
-                    },
-                  ),
-                  title: Text(
-                    '${shoppingItem.itemName} (${shoppingItem.quantity})',
-                    style: TextStyle(
-                      decoration: shoppingItem.isChecked
-                          ? TextDecoration.lineThrough
-                          : null,
-                    ),
-                  ),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.delete),
-                    onPressed: () {
-                      showDialog(
-                        context: context,
-                        builder: (BuildContext context) {
-                          return AlertDialog(
-                            title: const Text("Delete item?"),
-                            content: const Text(
-                                "Are you sure you want to delete this item?"),
-                            actions: [
-                              TextButton(
-                                onPressed: () {
-                                  Navigator.of(context).pop();
-                                },
-                                child: const Text("Cancel"),
-                              ),
-                              TextButton(
-                                onPressed: () {
-                                  try {
-                                    deleteShoppingList(shoppingItem.itemID);
-                                    Navigator.of(context).pop();
-                                    utils.showInfo("Item has been deleted.");
-                                  } catch (error) {
-                                    utils.showError('An error occurred. Please try again later.');
-                                  }
-                                },
-                                child: const Text("Delete"),
-                              ),
-                            ],
-                          );
-                        },
-                      );
-                    },
+                    ],
                   ),
                 );
-              },
-            );
-          }
-        },
+              } else {
+                final List<ShoppingList>? items = snapshot.data;
+                if (items!.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.shopping_basket_rounded,
+                          size: 80,
+                          color: primaryColor.withOpacity(0.3),
+                        ),
+                        const SizedBox(height: 24),
+                        Text(
+                          'No items yet',
+                          style: GoogleFonts.lato(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: primaryColor,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 40),
+                          child: Text(
+                            'Add recipes to your shopping list or tap + to add items manually',
+                            style: GoogleFonts.lato(
+                              fontSize: 16,
+                              color: Colors.black54,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+                return ShoppingListGroupedView(items: items);
+              }
+            },
+          ),
+        ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
@@ -143,26 +130,68 @@ class _ShoppingListsState extends State<ShoppingLists> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Add Item'),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Text(
+            'Add Item',
+            style: GoogleFonts.lato(
+              fontWeight: FontWeight.bold,
+              fontSize: 20,
+            ),
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 onChanged: (value) => newItem = value,
-                decoration: const InputDecoration(hintText: 'Enter name'),
+                decoration: InputDecoration(
+                  hintText: 'Enter name',
+                  hintStyle: GoogleFonts.lato(color: Colors.grey),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: primaryColor.withOpacity(0.3)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: primaryColor, width: 2),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                ),
+                style: GoogleFonts.lato(),
               ),
+              const SizedBox(height: 12),
               TextField(
                 onChanged: (value) => newQty = value,
-                decoration: const InputDecoration(hintText: 'Enter quantity'),
+                decoration: InputDecoration(
+                  hintText: 'Enter quantity',
+                  hintStyle: GoogleFonts.lato(color: Colors.grey),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: primaryColor.withOpacity(0.3)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: primaryColor, width: 2),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                ),
+                style: GoogleFonts.lato(),
               ),
             ],
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
+              child: Text(
+                'Cancel',
+                style: GoogleFonts.lato(
+                  color: Colors.grey,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ),
-            TextButton(
+            ElevatedButton(
               onPressed: () {
                 if (newItem.isNotEmpty) {
                   createShoppingList(ShoppingList(
@@ -175,7 +204,18 @@ class _ShoppingListsState extends State<ShoppingLists> {
                   utils.showSuccess("Item successfully added!");
                 }
               },
-              child: const Text('Add'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primaryColor,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              ),
+              child: Text(
+                'Add',
+                style: GoogleFonts.lato(fontWeight: FontWeight.bold),
+              ),
             ),
           ],
         );

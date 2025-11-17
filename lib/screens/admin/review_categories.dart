@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cookbook/utils/colors.dart';
+import 'package:cookbook/widgets/my_drawer.dart';
 import 'package:cookbook/services/firestore_functions.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
@@ -30,6 +31,7 @@ class _ReviewCategoriesScreenState extends State<ReviewCategoriesScreen> with Si
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      drawer: buildDrawer(context, currentRoute: '/admin-review-categories'),
       appBar: AppBar(
         title: Text(
           'Review Categories',
@@ -379,7 +381,7 @@ class _ReviewCategoriesScreenState extends State<ReviewCategoriesScreen> with Si
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Category suggestion approved!',
+              'Category approved and added to the categories list!',
               style: GoogleFonts.poppins(),
             ),
             backgroundColor: Colors.green,

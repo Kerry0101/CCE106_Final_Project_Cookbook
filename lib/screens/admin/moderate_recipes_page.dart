@@ -3,6 +3,7 @@ import 'package:cookbook/services/moderation_service.dart';
 import 'package:cookbook/models/recipe.dart';
 import 'package:cookbook/utils/colors.dart';
 import 'package:cookbook/widgets/admin_guard.dart';
+import 'package:cookbook/widgets/my_drawer.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -47,6 +48,7 @@ class _ModerateRecipesPageState extends State<ModerateRecipesPage> with SingleTi
   Widget build(BuildContext context) {
     return AdminGuard(
       child: Scaffold(
+        drawer: buildDrawer(context, currentRoute: '/admin-review-recipes'),
         appBar: AppBar(
           title: Text(
             'Review Recipes',

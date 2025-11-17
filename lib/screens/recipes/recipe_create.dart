@@ -15,6 +15,7 @@ import 'package:cookbook/services/firestore_functions.dart';
 import 'package:cookbook/services/cloudinary_service.dart';
 import 'package:cookbook/widgets/input_lists.dart';
 import 'package:cookbook/widgets/textform_field.dart';
+import 'package:cookbook/widgets/my_drawer.dart';
 import 'package:cookbook/utils/colors.dart';
 
 class recipeCreate extends StatefulWidget {
@@ -82,6 +83,7 @@ class _recipeCreateState extends State<recipeCreate> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      drawer: buildDrawer(context, currentRoute: '/create-recipe'),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -212,50 +214,38 @@ class _recipeCreateState extends State<recipeCreate> {
                     children: [
                       Padding(
                         padding: const EdgeInsets.all(2.0),
-                        child: Theme(
-                          data: Theme.of(context).copyWith(
-                            scrollbarTheme: ScrollbarThemeData(
-                              thumbColor: WidgetStateProperty.resolveWith((states) {
-                                if (states.contains(WidgetState.dragged)) {
-                                  return Colors.grey[600]; // Darker when actively dragging
-                                } else if (states.contains(WidgetState.hovered)) {
-                                  return Colors.grey[500]; // Medium when hovering
-                                }
-                                return Colors.grey[400]; // Lighter when inactive
-                              }),
-                              thickness: WidgetStateProperty.all(6.0), // Slightly thinner
-                              radius: const Radius.circular(4),
-                              thumbVisibility: WidgetStateProperty.all(true), // Always visible
-                              crossAxisMargin: 4.0, // Distance from the edge
-                            ),
-                          ),
-                          child: DropdownButtonFormField<String>(
-                            initialValue: _recipeSelectedCategory,
-                            decoration: const InputDecoration(
-                              border: OutlineInputBorder(),
-                              hintText: "Select Category",
-                            ),
-                            menuMaxHeight: 300, // Limits dropdown height and enables scrolling
-                            items: categories.map((String category) {
-                              //variable _categoryList for the options
-                              return DropdownMenuItem<String>(
-                                value: category,
-                                child: Text(
-                                  category,
-                                  style: GoogleFonts.lato(),
-                                ),
-                              );
-                            }).toList(),
-                            onChanged: (newValue) {
-                              setState(() {
-                                _recipeSelectedCategory = newValue!;
-                              });
-                            },
-                            validator: (value) => Validators.requiredSelection(
-                              value,
-                              fieldName: 'a category',
-                            ),
-                          ),
+                        child: StreamBuilder<List<String>>(
+                          stream: readCategories(),
+                          builder: (context, snapshot) {
+                            final categoriesList = snapshot.data ?? defaultCategories;
+                            
+                            return DropdownButtonFormField<String>(
+                              initialValue: _recipeSelectedCategory,
+                              decoration: const InputDecoration(
+                                border: OutlineInputBorder(),
+                                hintText: "Select Category",
+                              ),
+                              menuMaxHeight: 300,
+                              items: categoriesList.map((String category) {
+                                return DropdownMenuItem<String>(
+                                  value: category,
+                                  child: Text(
+                                    category,
+                                    style: GoogleFonts.lato(),
+                                  ),
+                                );
+                              }).toList(),
+                              onChanged: (newValue) {
+                                setState(() {
+                                  _recipeSelectedCategory = newValue!;
+                                });
+                              },
+                              validator: (value) => Validators.requiredSelection(
+                                value,
+                                fieldName: 'a category',
+                              ),
+                            );
+                          },
                         ),
                       ),
                     ],

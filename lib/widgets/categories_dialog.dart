@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cookbook/utils/colors.dart';
 import 'package:cookbook/widgets/suggest_category_dialog.dart';
+import 'package:cookbook/services/firestore_functions.dart';
 
 class CategoriesDialog extends StatefulWidget {
   final String currentCategory;
@@ -21,26 +22,48 @@ class _CategoriesDialogState extends State<CategoriesDialog> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
 
-  final List<Map<String, String>> _allCategories = [
-    {'name': 'All', 'icon': 'restaurant_menu'},
-    {'name': 'Appetizer', 'image': 'lib/images/categories/Appetizers.png'},
-    {'name': 'Breakfast', 'image': 'lib/images/categories/Breakfast.png'},
-    {'name': 'Lunch', 'image': 'lib/images/categories/Lunch.png'},
-    {'name': 'Dinner', 'image': 'lib/images/categories/Dinner.png'},
-    {'name': 'Dessert', 'image': 'lib/images/categories/Dessert.png'},
-    {'name': 'Snack', 'image': 'lib/images/categories/Snack.png'},
-    {'name': 'Beverage', 'image': 'lib/images/categories/Beverage.png'},
-    {'name': 'Soup', 'image': 'lib/images/categories/Soup.png'},
-    {'name': 'Salad', 'image': 'lib/images/categories/Salad.png'},
-    {'name': 'Main Course', 'image': 'lib/images/categories/MainCourse.png'},
+  final List<String> _categoryImagePaths = [
+    'lib/images/categories/Appetizers.png',
+    'lib/images/categories/Breakfast.png',
+    'lib/images/categories/Lunch.png',
+    'lib/images/categories/Dinner.png',
+    'lib/images/categories/Dessert.png',
+    'lib/images/categories/Snack.png',
+    'lib/images/categories/Beverage.png',
+    'lib/images/categories/Soup.png',
+    'lib/images/categories/Salad.png',
+    'lib/images/categories/MainCourse.png',
   ];
 
-  List<Map<String, String>> get _filteredCategories {
-    if (_searchQuery.isEmpty) {
-      return _allCategories;
+  final Map<String, String> _categoryImages = {
+    'Appetizer': 'lib/images/categories/Appetizers.png',
+    'Breakfast': 'lib/images/categories/Breakfast.png',
+    'Lunch': 'lib/images/categories/Lunch.png',
+    'Dinner': 'lib/images/categories/Dinner.png',
+    'Dessert': 'lib/images/categories/Dessert.png',
+    'Snack': 'lib/images/categories/Snack.png',
+    'Beverage': 'lib/images/categories/Beverage.png',
+    'Soup': 'lib/images/categories/Soup.png',
+    'Salad': 'lib/images/categories/Salad.png',
+    'Main Course': 'lib/images/categories/MainCourse.png',
+  };
+
+  String _getCategoryImage(String categoryName, int index) {
+    // First check if there's a predefined image for this category
+    if (_categoryImages.containsKey(categoryName)) {
+      return _categoryImages[categoryName]!;
     }
-    return _allCategories.where((category) {
-      return category['name']!.toLowerCase().contains(_searchQuery.toLowerCase());
+    // Otherwise, cycle through available images based on index
+    final imageIndex = index % _categoryImagePaths.length;
+    return _categoryImagePaths[imageIndex];
+  }
+
+  List<String> _filterCategories(List<String> categories) {
+    if (_searchQuery.isEmpty) {
+      return categories;
+    }
+    return categories.where((category) {
+      return category.toLowerCase().contains(_searchQuery.toLowerCase());
     }).toList();
   }
 
@@ -111,8 +134,32 @@ class _CategoriesDialogState extends State<CategoriesDialog> {
             
             // Categories Grid
             Expanded(
-              child: _filteredCategories.isEmpty
-                  ? Center(
+              child: StreamBuilder<List<String>>(
+                stream: readCategories(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+
+                  if (snapshot.hasError) {
+                    return Center(
+                      child: Text(
+                        'Error loading categories',
+                        style: GoogleFonts.poppins(
+                          color: Colors.red,
+                          fontSize: 14,
+                        ),
+                      ),
+                    );
+                  }
+
+                  final allCategories = snapshot.data ?? [];
+                  // Add "All" to the beginning
+                  final categoriesWithAll = ['All', ...allCategories];
+                  final filteredCategories = _filterCategories(categoriesWithAll);
+
+                  if (filteredCategories.isEmpty) {
+                    return Center(
                       child: Text(
                         'No categories found',
                         style: GoogleFonts.poppins(
@@ -120,105 +167,124 @@ class _CategoriesDialogState extends State<CategoriesDialog> {
                           fontSize: 14,
                         ),
                       ),
-                    )
-                  : GridView.builder(
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 3,
-                        crossAxisSpacing: 12,
-                        mainAxisSpacing: 12,
-                        childAspectRatio: 0.85,
-                      ),
-                      itemCount: _filteredCategories.length,
-                      itemBuilder: (context, index) {
-                        final category = _filteredCategories[index];
-                        final isSelected = category['name'] == widget.currentCategory;
-                        
-                        return GestureDetector(
-                          onTap: () {
-                            widget.onCategorySelected(category['name']!);
-                            Navigator.pop(context);
-                          },
-                          child: Container(
-                            decoration: BoxDecoration(
+                    );
+                  }
+
+                  return GridView.builder(
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 3,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
+                      childAspectRatio: 0.85,
+                    ),
+                    itemCount: filteredCategories.length,
+                    itemBuilder: (context, index) {
+                      final categoryName = filteredCategories[index];
+                      final isSelected = categoryName == widget.currentCategory;
+                      
+                      return GestureDetector(
+                        onTap: () {
+                          widget.onCategorySelected(categoryName);
+                          Navigator.pop(context);
+                        },
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? primaryColor.withOpacity(0.1)
+                                : Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
                               color: isSelected
-                                  ? primaryColor.withOpacity(0.1)
-                                  : Colors.white,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: isSelected
-                                    ? primaryColor
-                                    : Colors.grey[300]!,
-                                width: isSelected ? 2 : 1,
-                              ),
-                            ),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                // Category Icon/Image
-                                if (category.containsKey('icon'))
-                                  Container(
-                                    height: 50,
-                                    width: 50,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      color: isSelected
-                                          ? primaryColor
-                                          : Colors.grey[300],
-                                    ),
-                                    child: Icon(
-                                      Icons.restaurant_menu,
-                                      color: isSelected
-                                          ? Colors.white
-                                          : Colors.grey[600],
-                                      size: 25,
-                                    ),
-                                  )
-                                else
-                                  Container(
-                                    height: 50,
-                                    width: 50,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      border: isSelected
-                                          ? Border.all(
-                                              color: primaryColor,
-                                              width: 2,
-                                            )
-                                          : null,
-                                    ),
-                                    child: ClipOval(
-                                      child: Image.asset(
-                                        category['image']!,
-                                        fit: BoxFit.cover,
-                                      ),
-                                    ),
-                                  ),
-                                const SizedBox(height: 8),
-                                // Category Name
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                                  child: Text(
-                                    category['name']!,
-                                    textAlign: TextAlign.center,
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 11,
-                                      fontWeight: isSelected
-                                          ? FontWeight.w700
-                                          : FontWeight.w600,
-                                      color: isSelected
-                                          ? primaryColor
-                                          : Colors.black87,
-                                    ),
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              ],
+                                  ? primaryColor
+                                  : Colors.grey[300]!,
+                              width: isSelected ? 2 : 1,
                             ),
                           ),
-                        );
-                      },
-                    ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              // Category Icon/Image
+                              if (categoryName == 'All')
+                                Container(
+                                  height: 50,
+                                  width: 50,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: isSelected
+                                        ? primaryColor
+                                        : Colors.grey[300],
+                                  ),
+                                  child: Icon(
+                                    Icons.restaurant_menu,
+                                    color: isSelected
+                                        ? Colors.white
+                                        : Colors.grey[600],
+                                    size: 25,
+                                  ),
+                                )
+                              else
+                                Container(
+                                  height: 50,
+                                  width: 50,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    border: isSelected
+                                        ? Border.all(
+                                            color: primaryColor,
+                                            width: 2,
+                                          )
+                                        : null,
+                                  ),
+                                  child: ClipOval(
+                                    child: Image.asset(
+                                      _getCategoryImage(categoryName, index),
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (context, error, stackTrace) {
+                                        // Fallback icon if image not found
+                                        return Container(
+                                          color: isSelected
+                                              ? primaryColor
+                                              : primaryColor.withOpacity(0.2),
+                                          child: Icon(
+                                            Icons.category,
+                                            color: isSelected
+                                                ? Colors.white
+                                                : primaryColor,
+                                            size: 25,
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ),
+                              const SizedBox(height: 8),
+                              // Category Name
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 4),
+                                child: Text(
+                                  categoryName,
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 11,
+                                    fontWeight: isSelected
+                                        ? FontWeight.w700
+                                        : FontWeight.w600,
+                                    color: isSelected
+                                        ? primaryColor
+                                        : Colors.black87,
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
             ),
             const SizedBox(height: 16),
             

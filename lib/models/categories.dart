@@ -1,4 +1,6 @@
-final List<String> categories = [
+// Default categories - these will be used as fallback
+// Categories are now stored in Firestore and managed dynamically
+final List<String> defaultCategories = [
   'Appetizer',
   'Breakfast',
   'Lunch',
@@ -10,3 +12,7 @@ final List<String> categories = [
   'Salad',
   'Main Course',
 ];
+
+// For backward compatibility
+final List<String> categories = defaultCategories;
+

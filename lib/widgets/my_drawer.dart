@@ -17,7 +17,16 @@ import 'package:cookbook/screens/profile/profile_page.dart';
 import 'package:cookbook/screens/profile/admin_profile_management.dart';
 import 'package:cookbook/utils/colors.dart';
 
-Widget buildDrawer(BuildContext context) {
+Widget buildDrawer(BuildContext context, {String? currentRoute}) {
+  // Determine current route from the widget tree if not explicitly provided
+  String? route = currentRoute;
+  if (route == null) {
+    final modalRoute = ModalRoute.of(context);
+    if (modalRoute != null && modalRoute.settings.name != null) {
+      route = modalRoute.settings.name;
+    }
+  }
+  
   return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
     stream: getUserDetails(userID),
     builder: (context, snapshot) {
@@ -86,100 +95,147 @@ Widget buildDrawer(BuildContext context) {
               ],
             ),
             ListTile(
+              selected: route == '/profile',
+              selectedTileColor: primaryColor.withOpacity(0.1),
               leading: Icon(
                 Icons.person,
-                color: primaryColor,
+                color: route == '/profile' ? primaryColor : primaryColor.withOpacity(0.7),
               ),
               title: Text(
                 'My Profile',
-                style: GoogleFonts.lato(fontWeight: FontWeight.w600),
+                style: GoogleFonts.lato(
+                  fontWeight: route == '/profile' ? FontWeight.w700 : FontWeight.w600,
+                  color: route == '/profile' ? primaryColor : Colors.black87,
+                ),
               ),
               onTap: () {
-                Navigator.push(
+                Navigator.pushReplacement(
                   context,
-                  MaterialPageRoute(builder: (context) => const ProfilePage()),
+                  MaterialPageRoute(
+                    builder: (context) => const ProfilePage(),
+                    settings: const RouteSettings(name: '/profile'),
+                  ),
                 );
               },
             ),
             Divider(color: primaryColor.withOpacity(0.2), height: 1),
             ListTile(
+              selected: route == '/home',
+              selectedTileColor: primaryColor.withOpacity(0.1),
               leading: Icon(
-                Icons.search,
-                color: primaryColor,
+                Icons.home,
+                color: route == '/home' ? primaryColor : primaryColor.withOpacity(0.7),
               ),
               title: Text(
-                'Browse All Recipes',
-                style: GoogleFonts.lato(),
+                'Home',
+                style: GoogleFonts.lato(
+                  fontWeight: route == '/home' ? FontWeight.w700 : FontWeight.w400,
+                  color: route == '/home' ? primaryColor : Colors.black87,
+                ),
               ),
               onTap: () {
-                Navigator.push(
+                Navigator.pushReplacement(
                   context,
-                  MaterialPageRoute(builder: (context) => const HomePage()),
+                  MaterialPageRoute(
+                    builder: (context) => const HomePage(),
+                    settings: const RouteSettings(name: '/home'),
+                  ),
                 );
               },
             ),
             ListTile(
+              selected: route == '/my-recipes',
+              selectedTileColor: primaryColor.withOpacity(0.1),
               leading: Icon(
                 Icons.local_dining_rounded,
-                color: primaryColor,
+                color: route == '/my-recipes' ? primaryColor : primaryColor.withOpacity(0.7),
               ),
               title: Text(
                 'My Recipes',
-                style: GoogleFonts.lato(),
+                style: GoogleFonts.lato(
+                  fontWeight: route == '/my-recipes' ? FontWeight.w700 : FontWeight.w400,
+                  color: route == '/my-recipes' ? primaryColor : Colors.black87,
+                ),
               ),
               onTap: () {
-                Navigator.push(
+                Navigator.pushReplacement(
                   context,
-                  MaterialPageRoute(builder: (context) => const MyRecipesPage()),
+                  MaterialPageRoute(
+                    builder: (context) => const MyRecipesPage(),
+                    settings: const RouteSettings(name: '/my-recipes'),
+                  ),
                 );
               },
             ),
             ListTile(
+              selected: route == '/create-recipe',
+              selectedTileColor: primaryColor.withOpacity(0.1),
               leading: Icon(
                 Icons.add_rounded,
-                color: primaryColor,
+                color: route == '/create-recipe' ? primaryColor : primaryColor.withOpacity(0.7),
               ),
               title: Text(
                 'Create a Recipe',
-                style: GoogleFonts.lato(),
+                style: GoogleFonts.lato(
+                  fontWeight: route == '/create-recipe' ? FontWeight.w700 : FontWeight.w400,
+                  color: route == '/create-recipe' ? primaryColor : Colors.black87,
+                ),
               ),
               onTap: () {
-                Navigator.push(
+                Navigator.pushReplacement(
                   context,
-                  MaterialPageRoute(builder: (context) => const recipeCreate()),
+                  MaterialPageRoute(
+                    builder: (context) => const recipeCreate(),
+                    settings: const RouteSettings(name: '/create-recipe'),
+                  ),
                 );
               },
             ),
             ListTile(
+              selected: route == '/shopping-lists',
+              selectedTileColor: primaryColor.withOpacity(0.1),
               leading: Icon(
                 Icons.shopping_basket_rounded,
-                color: primaryColor,
+                color: route == '/shopping-lists' ? primaryColor : primaryColor.withOpacity(0.7),
               ),
               title: Text(
                 'Shopping Lists',
-                style: GoogleFonts.lato(),
+                style: GoogleFonts.lato(
+                  fontWeight: route == '/shopping-lists' ? FontWeight.w700 : FontWeight.w400,
+                  color: route == '/shopping-lists' ? primaryColor : Colors.black87,
+                ),
               ),
               onTap: () {
-                Navigator.push(
+                Navigator.pushReplacement(
                   context,
-                  MaterialPageRoute(builder: (context) => const ShoppingLists()),
+                  MaterialPageRoute(
+                    builder: (context) => const ShoppingLists(),
+                    settings: const RouteSettings(name: '/shopping-lists'),
+                  ),
                 );
               },
             ),
             ListTile(
+              selected: route == '/favorites',
+              selectedTileColor: primaryColor.withOpacity(0.1),
               leading: Icon(
                 Icons.favorite,
-                color: primaryColor,
+                color: route == '/favorites' ? primaryColor : primaryColor.withOpacity(0.7),
               ),
               title: Text(
                 'Favourites',
-                style: GoogleFonts.lato(),
+                style: GoogleFonts.lato(
+                  fontWeight: route == '/favorites' ? FontWeight.w700 : FontWeight.w400,
+                  color: route == '/favorites' ? primaryColor : Colors.black87,
+                ),
               ),
               onTap: () {
-                Navigator.push(
+                Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(
-                      builder: (context) => const FavoritesList()),
+                    builder: (context) => const FavoritesList(),
+                    settings: const RouteSettings(name: '/favorites'),
+                  ),
                 );
               },
             ),
@@ -206,31 +262,42 @@ Widget buildDrawer(BuildContext context) {
                         ),
                       ),
                       ListTile(
+                        selected: route == '/admin-users',
+                        selectedTileColor: primaryColor.withOpacity(0.1),
                         leading: Icon(
                           Icons.manage_accounts,
-                          color: primaryColor,
+                          color: route == '/admin-users' ? primaryColor : primaryColor.withOpacity(0.7),
                         ),
                         title: Text(
                           'User Management',
-                          style: GoogleFonts.lato(),
+                          style: GoogleFonts.lato(
+                            fontWeight: route == '/admin-users' ? FontWeight.w700 : FontWeight.w400,
+                            color: route == '/admin-users' ? primaryColor : Colors.black87,
+                          ),
                         ),
                         onTap: () {
-                          Navigator.push(
+                          Navigator.pushReplacement(
                             context,
                             MaterialPageRoute(
                               builder: (context) => const AdminProfileManagement(),
+                              settings: const RouteSettings(name: '/admin-users'),
                             ),
                           );
                         },
                       ),
                       ListTile(
+                        selected: route == '/admin-review-recipes',
+                        selectedTileColor: primaryColor.withOpacity(0.1),
                         leading: Icon(
                           Icons.admin_panel_settings,
-                          color: primaryColor,
+                          color: route == '/admin-review-recipes' ? primaryColor : primaryColor.withOpacity(0.7),
                         ),
                         title: Text(
                           'Review Recipes',
-                          style: GoogleFonts.lato(),
+                          style: GoogleFonts.lato(
+                            fontWeight: route == '/admin-review-recipes' ? FontWeight.w700 : FontWeight.w400,
+                            color: route == '/admin-review-recipes' ? primaryColor : Colors.black87,
+                          ),
                         ),
                         trailing: StreamBuilder<int>(
                           stream: ModerationService.getPendingCount(),
@@ -256,22 +323,28 @@ Widget buildDrawer(BuildContext context) {
                           },
                         ),
                         onTap: () {
-                          Navigator.push(
+                          Navigator.pushReplacement(
                             context,
                             MaterialPageRoute(
                               builder: (context) => const ModerateRecipesPage(),
+                              settings: const RouteSettings(name: '/admin-review-recipes'),
                             ),
                           );
                         },
                       ),
                       ListTile(
+                        selected: route == '/admin-review-categories',
+                        selectedTileColor: primaryColor.withOpacity(0.1),
                         leading: Icon(
                           Icons.category,
-                          color: primaryColor,
+                          color: route == '/admin-review-categories' ? primaryColor : primaryColor.withOpacity(0.7),
                         ),
                         title: Text(
                           'Review Categories',
-                          style: GoogleFonts.lato(),
+                          style: GoogleFonts.lato(
+                            fontWeight: route == '/admin-review-categories' ? FontWeight.w700 : FontWeight.w400,
+                            color: route == '/admin-review-categories' ? primaryColor : Colors.black87,
+                          ),
                         ),
                         trailing: StreamBuilder<int>(
                           stream: countPendingCategorySuggestions().asStream(),
@@ -297,10 +370,11 @@ Widget buildDrawer(BuildContext context) {
                           },
                         ),
                         onTap: () {
-                          Navigator.push(
+                          Navigator.pushReplacement(
                             context,
                             MaterialPageRoute(
                               builder: (context) => const ReviewCategoriesScreen(),
+                              settings: const RouteSettings(name: '/admin-review-categories'),
                             ),
                           );
                         },

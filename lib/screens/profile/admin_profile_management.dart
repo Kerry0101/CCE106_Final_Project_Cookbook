@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:cookbook/models/user_profile.dart';
 import 'package:cookbook/services/user_profile_service.dart';
+import 'package:cookbook/widgets/my_drawer.dart';
 import 'package:cookbook/utils/colors.dart';
 import 'package:cookbook/utils/utils.dart';
 
@@ -23,6 +24,7 @@ class _AdminProfileManagementState extends State<AdminProfileManagement> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      drawer: buildDrawer(context, currentRoute: '/admin-users'),
       backgroundColor: Colors.grey[100],
       appBar: AppBar(
         title: Text(

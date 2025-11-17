@@ -43,7 +43,7 @@ class _HomePageState extends State<HomePage> {
         elevation: 0,
         iconTheme: IconThemeData(color: primaryColor),
       ),
-      drawer: buildDrawer(context),
+      drawer: buildDrawer(context, currentRoute: '/home'),
       body: Container(
         constraints: const BoxConstraints.expand(),
         decoration: BoxDecoration(
@@ -72,7 +72,7 @@ class _HomePageState extends State<HomePage> {
           const SizedBox(height: 8),
           Container(
             margin: const EdgeInsets.symmetric(horizontal: 12),
-            height: 110, // Increased height to prevent overflow
+            height: 120,
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.95),
               borderRadius: BorderRadius.circular(15),
@@ -89,226 +89,204 @@ class _HomePageState extends State<HomePage> {
               thumbVisibility: false,
               thickness: 4,
               radius: const Radius.circular(10),
-              child: ListView(
-                controller: _categoriesScrollCtrl,
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                children: [
-                  // All Categories
-                  GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        _selectedCategory = 'All';
-                      });
-                    },
-                    child: Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 6),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Container(
-                            height: 60,
-                            width: 60,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: _selectedCategory == 'All'
-                                  ? const Color(0xFF008B8B)
-                                  : Colors.grey[300],
-                              border: _selectedCategory == 'All'
-                                  ? Border.all(
-                                      color: const Color(0xFF008B8B),
-                                      width: 3,
-                                    )
-                                  : null,
-                              boxShadow: [
-                                BoxShadow(
+              child: StreamBuilder<List<String>>(
+                stream: readCategories(),
+                builder: (context, snapshot) {
+                  final categories = snapshot.data ?? [];
+                  
+                  // Define available icon images that will cycle
+                  final categoryImages = [
+                    'lib/images/categories/Appetizers.png',
+                    'lib/images/categories/Breakfast.png',
+                    'lib/images/categories/Lunch.png',
+                    'lib/images/categories/Dinner.png',
+                    'lib/images/categories/Dessert.png',
+                    'lib/images/categories/Snack.png',
+                    'lib/images/categories/Beverage.png',
+                    'lib/images/categories/Soup.png',
+                    'lib/images/categories/Salad.png',
+                    'lib/images/categories/MainCourse.png',
+                  ];
+                  
+                  // Map specific categories to their images
+                  final specificImages = {
+                    'Appetizer': 'lib/images/categories/Appetizers.png',
+                    'Breakfast': 'lib/images/categories/Breakfast.png',
+                    'Lunch': 'lib/images/categories/Lunch.png',
+                    'Dinner': 'lib/images/categories/Dinner.png',
+                    'Dessert': 'lib/images/categories/Dessert.png',
+                    'Snack': 'lib/images/categories/Snack.png',
+                    'Beverage': 'lib/images/categories/Beverage.png',
+                    'Soup': 'lib/images/categories/Soup.png',
+                    'Salad': 'lib/images/categories/Salad.png',
+                    'Main Course': 'lib/images/categories/MainCourse.png',
+                  };
+                  
+                  String getCategoryImage(String categoryName, int index) {
+                    if (specificImages.containsKey(categoryName)) {
+                      return specificImages[categoryName]!;
+                    }
+                    return categoryImages[index % categoryImages.length];
+                  }
+                  
+                  // Take first 9 categories for horizontal list
+                  final displayCategories = categories.take(9).toList();
+                  
+                  return ListView(
+                    controller: _categoriesScrollCtrl,
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    children: [
+                      // All Categories button
+                      GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _selectedCategory = 'All';
+                          });
+                        },
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 6),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                height: 60,
+                                width: 60,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
                                   color: _selectedCategory == 'All'
-                                      ? const Color(0xFF008B8B).withOpacity(0.4)
-                                      : Colors.black.withOpacity(0.1),
-                                  blurRadius: _selectedCategory == 'All' ? 12 : 8,
-                                  offset: const Offset(0, 3),
+                                      ? const Color(0xFF008B8B)
+                                      : Colors.grey[300],
+                                  border: _selectedCategory == 'All'
+                                      ? Border.all(
+                                          color: const Color(0xFF008B8B),
+                               
+                                        )
+                                      : null,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: _selectedCategory == 'All'
+                                          ? const Color(0xFF008B8B).withOpacity(0.4)
+                                          : Colors.black.withOpacity(0.1),
+                                      blurRadius: _selectedCategory == 'All' ? 12 : 8,
+                                      offset: const Offset(0, 3),
+                                    ),
+                                  ],
                                 ),
-                              ],
-                            ),
-                            child: Icon(
-                              Icons.restaurant_menu,
-                              color: _selectedCategory == 'All'
-                                  ? Colors.white
-                                  : Colors.grey[600],
-                              size: 30,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          SizedBox(
-                            width: 70,
-                            child: Text(
-                              'All',
-                              textAlign: TextAlign.center,
-                              style: GoogleFonts.poppins(
-                                fontSize: 9,
-                                fontWeight: _selectedCategory == 'All'
-                                    ? FontWeight.w700
-                                    : FontWeight.w600,
-                                color: _selectedCategory == 'All'
-                                    ? const Color(0xFF008B8B)
-                                    : Colors.black87,
+                                child: Icon(
+                                  Icons.restaurant_menu,
+                                  color: _selectedCategory == 'All'
+                                      ? Colors.white
+                                      : Colors.grey[600],
+                                  size: 30,
+                                ),
                               ),
-                            ),
+                              const SizedBox(height: 6),
+                              SizedBox(
+                                width: 72,
+                                child: Text(
+                                  'All',
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 10,
+                                    fontWeight: _selectedCategory == 'All'
+                                        ? FontWeight.w700
+                                        : FontWeight.w600,
+                                    color: _selectedCategory == 'All'
+                                        ? const Color(0xFF008B8B)
+                                        : Colors.black87,
+                                    height: 1.2,
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
+                        ),
                       ),
-                    ),
-                  ),
-                  CategoriesList(
-                    imageUrl: "lib/images/categories/Appetizers.png",
-                    labelText: "Appetizer",
-                    isSelected: _selectedCategory == 'Appetizer',
-                    onTap: () {
-                      setState(() {
-                        _selectedCategory = 'Appetizer';
-                      });
-                    },
-                  ),
-                  CategoriesList(
-                    imageUrl: "lib/images/categories/Breakfast.png",
-                    labelText: "Breakfast",
-                    isSelected: _selectedCategory == 'Breakfast',
-                    onTap: () {
-                      setState(() {
-                        _selectedCategory = 'Breakfast';
-                      });
-                    },
-                  ),
-                  CategoriesList(
-                    imageUrl: "lib/images/categories/Lunch.png",
-                    labelText: "Lunch",
-                    isSelected: _selectedCategory == 'Lunch',
-                    onTap: () {
-                      setState(() {
-                        _selectedCategory = 'Lunch';
-                      });
-                    },
-                  ),
-                  CategoriesList(
-                    imageUrl: "lib/images/categories/Dinner.png",
-                    labelText: "Dinner",
-                    isSelected: _selectedCategory == 'Dinner',
-                    onTap: () {
-                      setState(() {
-                        _selectedCategory = 'Dinner';
-                      });
-                    },
-                  ),
-                  CategoriesList(
-                    imageUrl: "lib/images/categories/Dessert.png",
-                    labelText: "Dessert",
-                    isSelected: _selectedCategory == 'Dessert',
-                    onTap: () {
-                      setState(() {
-                        _selectedCategory = 'Dessert';
-                      });
-                    },
-                  ),
-                  CategoriesList(
-                    imageUrl: "lib/images/categories/Snack.png",
-                    labelText: "Snack",
-                    isSelected: _selectedCategory == 'Snack',
-                    onTap: () {
-                      setState(() {
-                        _selectedCategory = 'Snack';
-                      });
-                    },
-                  ),
-                  CategoriesList(
-                    imageUrl: "lib/images/categories/Beverage.png",
-                    labelText: "Beverage",
-                    isSelected: _selectedCategory == 'Beverage',
-                    onTap: () {
-                      setState(() {
-                        _selectedCategory = 'Beverage';
-                      });
-                    },
-                  ),
-                  CategoriesList(
-                    imageUrl: "lib/images/categories/Soup.png",
-                    labelText: "Soup",
-                    isSelected: _selectedCategory == 'Soup',
-                    onTap: () {
-                      setState(() {
-                        _selectedCategory = 'Soup';
-                      });
-                    },
-                  ),
-                  CategoriesList(
-                    imageUrl: "lib/images/categories/Salad.png",
-                    labelText: "Salad",
-                    isSelected: _selectedCategory == 'Salad',
-                    onTap: () {
-                      setState(() {
-                        _selectedCategory = 'Salad';
-                      });
-                    },
-                  ),
-                  // More Button (11th item - last category "Main Course" moved to dialog)
-                  GestureDetector(
-                    onTap: () {
-                      showDialog(
-                        context: context,
-                        builder: (context) => CategoriesDialog(
-                          currentCategory: _selectedCategory,
-                          onCategorySelected: (category) {
+                      
+                      // Dynamic categories
+                      ...displayCategories.asMap().entries.map((entry) {
+                        final index = entry.key;
+                        final category = entry.value;
+                        return CategoriesList(
+                          imageUrl: getCategoryImage(category, index),
+                          labelText: category,
+                          isSelected: _selectedCategory == category,
+                          onTap: () {
                             setState(() {
                               _selectedCategory = category;
                             });
                           },
-                        ),
-                      );
-                    },
-                    child: Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 6),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Container(
-                            height: 60,
-                            width: 60,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: Colors.grey[300],
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.1),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 3),
+                        );
+                      }),
+                      
+                      // More Button
+                      GestureDetector(
+                        onTap: () {
+                          showDialog(
+                            context: context,
+                            builder: (context) => CategoriesDialog(
+                              currentCategory: _selectedCategory,
+                              onCategorySelected: (category) {
+                                setState(() {
+                                  _selectedCategory = category;
+                                });
+                              },
+                            ),
+                          );
+                        },
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 6),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                height: 60,
+                                width: 60,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Colors.grey[300],
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.1),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 3),
+                                    ),
+                                  ],
                                 ),
-                              ],
-                            ),
-                            child: Icon(
-                              Icons.add,
-                              color: Colors.grey[600],
-                              size: 30,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          SizedBox(
-                            width: 70,
-                            child: Text(
-                              'More',
-                              textAlign: TextAlign.center,
-                              style: GoogleFonts.poppins(
-                                fontSize: 9,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.black87,
+                                child: Icon(
+                                  Icons.add,
+                                  color: Colors.grey[600],
+                                  size: 30,
+                                ),
                               ),
-                            ),
+                              const SizedBox(height: 6),
+                              SizedBox(
+                                width: 72,
+                                child: Text(
+                                  'More',
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.black87,
+                                    height: 1.2,
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
+                        ),
                       ),
-                    ),
-                  ),
-                ],
+                    ],
+                  );
+                },
               ),
             ),
           ),
@@ -478,6 +456,7 @@ class _HomePageState extends State<HomePage> {
             context,
             MaterialPageRoute(
               builder: (context) => const recipeCreate(),
+              settings: const RouteSettings(name: '/create-recipe'),
             ),
           );
         },

@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import 'package:cookbook/models/recipe.dart';
+import 'package:cookbook/models/shopping_lists.dart';
 import 'package:cookbook/screens/recipes/recipe_edit.dart';
 import 'package:cookbook/services/firestore_functions.dart';
 import 'package:cookbook/services/role_service.dart';
@@ -39,6 +40,131 @@ class _RecipeAboutState extends State<RecipeAbout> with SingleTickerProviderStat
       // User can edit/delete if they own the recipe OR they are an admin
       _canEditDelete = (currentUserId == widget.recipe.userID) || isAdmin;
     });
+  }
+
+  Future<void> _addToShoppingList() async {
+    try {
+      // Check if recipe is already in shopping list
+      final isAlreadyAdded = await isRecipeInShoppingList(widget.recipe.recipeID);
+      
+      if (isAlreadyAdded) {
+        if (!mounted) return;
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              title: Text(
+                'Already Added',
+                style: GoogleFonts.lato(fontWeight: FontWeight.bold),
+              ),
+              content: Text(
+                'This recipe is already in your shopping list. Would you like to remove it or keep it?',
+                style: GoogleFonts.lato(),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: Text(
+                    'Keep',
+                    style: GoogleFonts.lato(color: Colors.grey),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () async {
+                    await deleteRecipeFromShoppingList(widget.recipe.recipeID);
+                    if (!mounted) return;
+                    Navigator.of(context).pop();
+                    utils.showSuccess('Recipe removed from shopping list');
+                  },
+                  child: Text(
+                    'Remove',
+                    style: GoogleFonts.lato(
+                      color: Colors.red,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+        return;
+      }
+
+      // Show confirmation dialog with ingredient preview
+      if (!mounted) return;
+      final confirm = await showDialog<bool>(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            title: Text(
+              'Add to Shopping List',
+              style: GoogleFonts.lato(fontWeight: FontWeight.bold),
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Add all ingredients from "${widget.recipe.name}" to your shopping list?',
+                  style: GoogleFonts.lato(),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  '${widget.recipe.ingredients.length} ingredients will be added',
+                  style: GoogleFonts.lato(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: Text(
+                  'Cancel',
+                  style: GoogleFonts.lato(color: Colors.grey),
+                ),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: primaryColor,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: Text(
+                  'Add',
+                  style: GoogleFonts.lato(fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          );
+        },
+      );
+
+      if (confirm == true) {
+        await addRecipeToShoppingList(
+          widget.recipe.recipeID,
+          widget.recipe.name,
+          widget.recipe.ingredients,
+        );
+        if (!mounted) return;
+        utils.showSuccess('${widget.recipe.ingredients.length} ingredients added to shopping list!');
+      }
+    } catch (e) {
+      if (!mounted) return;
+      utils.showError('Failed to add ingredients. Please try again.');
+    }
   }
 
   @override
@@ -438,14 +564,38 @@ class _RecipeAboutState extends State<RecipeAbout> with SingleTickerProviderStat
                 children: [
                   // Ingredients Section
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 10, 0, 5),
-                    child: Text(
-                      "Ingredients",
-                      style: GoogleFonts.lato(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        color: primaryColor,
-                      ),
+                    padding: const EdgeInsets.fromLTRB(20, 10, 20, 5),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          "Ingredients",
+                          style: GoogleFonts.lato(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            color: primaryColor,
+                          ),
+                        ),
+                        ElevatedButton.icon(
+                          onPressed: () => _addToShoppingList(),
+                          icon: const Icon(Icons.add_shopping_cart, size: 18),
+                          label: Text(
+                            'Add to List',
+                            style: GoogleFonts.lato(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: primaryColor,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   Padding(
