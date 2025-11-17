@@ -20,6 +20,7 @@ class _MyRecipesPageState extends State<MyRecipesPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       drawer: buildDrawer(context, currentRoute: '/my-recipes'),
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -36,15 +37,17 @@ class _MyRecipesPageState extends State<MyRecipesPage> {
         ),
       ),
       body: Container(
+        height: double.infinity,
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             colors: [bgc1, bgc2, bgc3, bgc4],
           ),
         ),
-        child: StreamBuilder<List<Recipe>>(
-          stream: readMyRecipes(),
-          builder: (context, snapshot) {
+        child: SafeArea(
+          child: StreamBuilder<List<Recipe>>(
+            stream: readMyRecipes(),
+            builder: (context, snapshot) {
             if (snapshot.hasError) {
               return Center(child: Text('Error: ${snapshot.error}'));
             }
@@ -183,6 +186,7 @@ class _MyRecipesPageState extends State<MyRecipesPage> {
             },
           );
         },
+        ),
         ),
       ),
     );

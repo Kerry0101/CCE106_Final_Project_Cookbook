@@ -31,6 +31,7 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
         title: Text(
           "Culinary Chronicles",
@@ -52,14 +53,15 @@ class _HomePageState extends State<HomePage> {
             colors: [bgc1, bgc2, bgc3, bgc4],
           ),
         ),
-        child: Scrollbar(
-          controller: _homeScrollCtrl,
-          thumbVisibility: true,
-          child: ListView(
+        child: SafeArea(
+          child: Scrollbar(
             controller: _homeScrollCtrl,
-            children: [
-          Padding(
-            padding: const EdgeInsets.only(left: 20.0, top: 16.0, bottom: 12.0),
+            thumbVisibility: true,
+            child: ListView(
+              controller: _homeScrollCtrl,
+              children: [
+            Padding(
+              padding: const EdgeInsets.only(left: 20.0, top: 16.0, bottom: 12.0),
             child: Text(
               "Categories",
               style: GoogleFonts.montserrat(
@@ -448,6 +450,7 @@ class _HomePageState extends State<HomePage> {
           const SizedBox(height: 80), // Extra space for FAB
         ],
           ),
+        ),
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(

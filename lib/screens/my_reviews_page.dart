@@ -44,7 +44,7 @@ class _MyReviewsPageState extends State<MyReviewsPage> {
           reviewsWithRecipes.add({
             'review': review,
             'recipeName': recipeData['name'] ?? 'Unknown Recipe',
-            'recipeImage': recipeData['image'] ?? '',
+            'recipeImage': recipeData['imageUrl'] ?? recipeData['image'] ?? '',
           });
         }
       }
@@ -213,6 +213,361 @@ class _MyReviewsPageState extends State<MyReviewsPage> {
     );
   }
 
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      drawer: buildDrawer(context, currentRoute: '/my-reviews'),
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: Text(
+          'My Reviews',
+          style: GoogleFonts.lato(
+            fontWeight: FontWeight.bold,
+            color: primaryColor,
+            fontSize: 22,
+          ),
+        ),
+        iconTheme: IconThemeData(color: primaryColor),
+      ),
+      body: Container(
+        height: double.infinity,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            colors: [bgc1, bgc2, bgc3, bgc4],
+          ),
+        ),
+        child: SafeArea(
+          child: StreamBuilder<List<Map<String, dynamic>>>(
+            stream: _getAllUserReviews(),
+            builder: (context, snapshot) {
+              if (snapshot.hasError) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.error_outline, size: 64, color: Colors.red[300]),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Error loading reviews',
+                        style: GoogleFonts.lato(color: Colors.red),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                );
+              }
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return Center(
+                  child: CircularProgressIndicator(color: primaryColor),
+                );
+              }
+
+              final reviews = snapshot.data ?? [];
+
+              if (reviews.isEmpty) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.rate_review_outlined,
+                        size: 80,
+                        color: primaryColor.withOpacity(0.3),
+                      ),
+                      const SizedBox(height: 24),
+                      Text(
+                        'No Reviews Yet',
+                        style: GoogleFonts.lato(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: primaryColor,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 40),
+                        child: Text(
+                          'Reviews you leave on recipes will appear here',
+                          style: GoogleFonts.lato(
+                            fontSize: 16,
+                            color: Colors.black54,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }
+
+              return ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: reviews.length,
+                itemBuilder: (context, index) {
+                  final data = reviews[index];
+                  final review = data['review'] as Review;
+                  final recipeName = data['recipeName'] as String;
+                  final recipeImage = data['recipeImage'] as String;
+                  
+                  final daysSinceCreation = DateTime.now().difference(review.createdAt).inDays;
+                  final canEdit = daysSinceCreation <= 30;
+
+                  return Card(
+                    margin: const EdgeInsets.only(bottom: 16),
+                    elevation: 4,
+                    shadowColor: Colors.black.withOpacity(0.1),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        color: Colors.white,
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Recipe info
+                            Row(
+                              children: [
+                                Container(
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(12),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.1),
+                                        blurRadius: 4,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: recipeImage.isNotEmpty
+                                        ? Image.network(
+                                            recipeImage,
+                                            width: 70,
+                                            height: 70,
+                                            fit: BoxFit.cover,
+                                            errorBuilder: (context, error, stackTrace) =>
+                                                Container(
+                                              width: 60,
+                                              height: 60,
+                                              color: Colors.teal[50],
+                                              child: Icon(
+                                                Icons.restaurant,
+                                                color: Colors.teal,
+                                                size: 28,
+                                              ),
+                                            ),
+                                          )
+                                        : Container(
+                                            width: 60,
+                                            height: 60,
+                                            color: Colors.teal[50],
+                                            child: Icon(
+                                              Icons.restaurant,
+                                              color: Colors.teal,
+                                              size: 28,
+                                            ),
+                                          ),
+                                  ),
+                                ),
+                                const SizedBox(width: 14),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        recipeName,
+                                        style: GoogleFonts.lato(
+                                          fontSize: 17,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.grey[800],
+                                        ),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Row(
+                                        children: [
+                                          Icon(
+                                            Icons.access_time,
+                                            size: 14,
+                                            color: Colors.grey[500],
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            _formatTimeAgo(review.createdAt),
+                                            style: GoogleFonts.lato(
+                                              fontSize: 12,
+                                              color: Colors.grey[600],
+                                            ),
+                                          ),
+                                          if (review.updatedAt != null) ...[
+                                            Text(
+                                              ' • ',
+                                              style: GoogleFonts.lato(
+                                                fontSize: 12,
+                                                color: Colors.grey[500],
+                                              ),
+                                            ),
+                                            Text(
+                                              'Edited',
+                                              style: GoogleFonts.lato(
+                                                fontSize: 11,
+                                                color: Colors.grey[500],
+                                                fontStyle: FontStyle.italic,
+                                              ),
+                                            ),
+                                          ],
+                                        ],
+                                      ),
+                                      if (canEdit) ...[
+                                        const SizedBox(height: 6),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 10,
+                                            vertical: 4,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            gradient: LinearGradient(
+                                              colors: [
+                                                Colors.orange[100]!,
+                                                Colors.orange[50]!,
+                                              ],
+                                            ),
+                                            borderRadius: BorderRadius.circular(12),
+                                            border: Border.all(
+                                              color: Colors.orange[300]!,
+                                              width: 1,
+                                            ),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Icon(
+                                                Icons.timer_outlined,
+                                                size: 13,
+                                                color: Colors.orange[800],
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                '${30 - daysSinceCreation} days left to edit',
+                                                style: GoogleFonts.lato(
+                                                  fontSize: 11,
+                                                  color: Colors.orange[800],
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                                if (canEdit)
+                                  PopupMenuButton<String>(
+                                    padding: EdgeInsets.zero,
+                                    iconSize: 22,
+                                    icon: Icon(Icons.more_vert, color: Colors.grey[600]),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      onSelected: (value) {
+                                        if (value == 'edit') {
+                                          _showEditReviewDialog(review, recipeName);
+                                        } else if (value == 'delete') {
+                                          _showDeleteConfirmation(review, recipeName);
+                                        }
+                                      },
+                                      itemBuilder: (context) => [
+                                        PopupMenuItem(
+                                          value: 'edit',
+                                          child: Row(
+                                            children: [
+                                              Icon(Icons.edit_outlined, size: 18, color: primaryColor),
+                                              const SizedBox(width: 10),
+                                              Text(
+                                                'Edit',
+                                                style: GoogleFonts.lato(fontSize: 14),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        PopupMenuItem(
+                                          value: 'delete',
+                                          child: Row(
+                                            children: [
+                                              const Icon(Icons.delete_outline, size: 18, color: Colors.red),
+                                              const SizedBox(width: 10),
+                                              Text(
+                                                'Delete',
+                                                style: GoogleFonts.lato(fontSize: 14),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                              ],
+                            ),
+                            const SizedBox(height: 14),
+                            Divider(color: Colors.grey[200], height: 1),
+                            const SizedBox(height: 12),
+                            // Rating
+                            Row(
+                              children: List.generate(5, (starIndex) {
+                                return Icon(
+                                  starIndex < review.rating ? Icons.star : Icons.star_border,
+                                  color: Colors.amber[600],
+                                  size: 22,
+                                );
+                              }),
+                            ),
+                            // Comment
+                            if (review.comment != null && review.comment!.isNotEmpty) ...[
+                              const SizedBox(height: 12),
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey[50],
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: Colors.grey[200]!,
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Text(
+                                  review.comment!,
+                                  style: GoogleFonts.lato(
+                                    fontSize: 14,
+                                    height: 1.5,
+                                    color: Colors.grey[700],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
   String _formatTimeAgo(DateTime dateTime) {
     final now = DateTime.now();
     final difference = now.difference(dateTime);
@@ -232,254 +587,5 @@ class _MyReviewsPageState extends State<MyReviewsPage> {
     } else {
       return 'Just now';
     }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'My Reviews',
-          style: GoogleFonts.montserrat(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-        backgroundColor: primaryColor,
-        iconTheme: const IconThemeData(color: Colors.white),
-      ),
-      drawer: buildDrawer(context, currentRoute: '/my-reviews'),
-      body: StreamBuilder<List<Map<String, dynamic>>>(
-        stream: _getAllUserReviews(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (snapshot.hasError) {
-            return Center(
-              child: Text(
-                'Error loading reviews',
-                style: GoogleFonts.lato(color: Colors.grey),
-              ),
-            );
-          }
-
-          final reviews = snapshot.data ?? [];
-
-          if (reviews.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.rate_review_outlined, size: 80, color: Colors.grey[300]),
-                  const SizedBox(height: 16),
-                  Text(
-                    'No Reviews Yet',
-                    style: GoogleFonts.montserrat(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Reviews you leave on recipes will appear here',
-                    style: GoogleFonts.lato(
-                      fontSize: 14,
-                      color: Colors.grey[500],
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }
-
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: reviews.length,
-            itemBuilder: (context, index) {
-              final data = reviews[index];
-              final review = data['review'] as Review;
-              final recipeName = data['recipeName'] as String;
-              final recipeImage = data['recipeImage'] as String;
-              
-              final daysSinceCreation = DateTime.now().difference(review.createdAt).inDays;
-              final canEdit = daysSinceCreation <= 30;
-
-              return Card(
-                margin: const EdgeInsets.only(bottom: 16),
-                elevation: 2,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(14),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Recipe info
-                      Row(
-                        children: [
-                          if (recipeImage.isNotEmpty)
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: Image.network(
-                                recipeImage,
-                                width: 50,
-                                height: 50,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) =>
-                                    Container(
-                                  width: 50,
-                                  height: 50,
-                                  color: Colors.grey[300],
-                                  child: const Icon(Icons.restaurant),
-                                ),
-                              ),
-                            )
-                          else
-                            Container(
-                              width: 50,
-                              height: 50,
-                              decoration: BoxDecoration(
-                                color: Colors.grey[300],
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: const Icon(Icons.restaurant),
-                            ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  recipeName,
-                                  style: GoogleFonts.lato(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                const SizedBox(height: 4),
-                                Row(
-                                  children: [
-                                    Text(
-                                      _formatTimeAgo(review.createdAt),
-                                      style: GoogleFonts.lato(
-                                        fontSize: 12,
-                                        color: Colors.grey[600],
-                                      ),
-                                    ),
-                                    if (review.updatedAt != null) ...[
-                                      Text(
-                                        ' • ',
-                                        style: GoogleFonts.lato(
-                                          fontSize: 12,
-                                          color: Colors.grey[500],
-                                        ),
-                                      ),
-                                      Text(
-                                        'Edited',
-                                        style: GoogleFonts.lato(
-                                          fontSize: 11,
-                                          color: Colors.grey[500],
-                                          fontStyle: FontStyle.italic,
-                                        ),
-                                      ),
-                                    ],
-                                    if (canEdit) ...[
-                                      Text(
-                                        ' • ',
-                                        style: GoogleFonts.lato(
-                                          fontSize: 12,
-                                          color: Colors.grey[500],
-                                        ),
-                                      ),
-                                      Text(
-                                        '${30 - daysSinceCreation} days left',
-                                        style: GoogleFonts.lato(
-                                          fontSize: 11,
-                                          color: Colors.orange[700],
-                                          fontStyle: FontStyle.italic,
-                                        ),
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                          if (canEdit)
-                            PopupMenuButton<String>(
-                              padding: EdgeInsets.zero,
-                              iconSize: 20,
-                              icon: Icon(Icons.more_vert, color: Colors.grey[600]),
-                              onSelected: (value) {
-                                if (value == 'edit') {
-                                  _showEditReviewDialog(review, recipeName);
-                                } else if (value == 'delete') {
-                                  _showDeleteConfirmation(review, recipeName);
-                                }
-                              },
-                              itemBuilder: (context) => [
-                                PopupMenuItem(
-                                  value: 'edit',
-                                  child: Row(
-                                    children: [
-                                      Icon(Icons.edit, size: 18, color: Colors.grey[700]),
-                                      const SizedBox(width: 8),
-                                      const Text('Edit'),
-                                    ],
-                                  ),
-                                ),
-                                PopupMenuItem(
-                                  value: 'delete',
-                                  child: Row(
-                                    children: [
-                                      const Icon(Icons.delete, size: 18, color: Colors.red),
-                                      const SizedBox(width: 8),
-                                      const Text('Delete'),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      // Rating
-                      Row(
-                        children: List.generate(5, (starIndex) {
-                          return Icon(
-                            starIndex < review.rating ? Icons.star : Icons.star_border,
-                            color: Colors.amber,
-                            size: 20,
-                          );
-                        }),
-                      ),
-                      // Comment
-                      if (review.comment != null && review.comment!.isNotEmpty) ...[
-                        const SizedBox(height: 8),
-                        Text(
-                          review.comment!,
-                          style: GoogleFonts.lato(
-                            fontSize: 14,
-                            height: 1.4,
-                          ),
-                          maxLines: 3,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              );
-            },
-          );
-        },
-      ),
-    );
   }
 }

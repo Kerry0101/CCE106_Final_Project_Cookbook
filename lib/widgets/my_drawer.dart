@@ -44,58 +44,85 @@ Widget buildDrawer(BuildContext context, {String? currentRoute}) {
 
       final userData = snapshot.data!.data();
       String userName = userData?['displayName'] ?? userData?['name'] ?? 'User';
+      String? photoURL = userData?['photoURL'];
 
       return Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            Stack(
-              children: [
-                Container(
-                  height: 200,
-                  decoration: BoxDecoration(
-                    border: Border(
-                      bottom: BorderSide(
-                        color: primaryColor,
-                        width: 3.0,
-                      ),
-                    ),
-                  ),
-                ),
-                Center(
-                  child: ClipRRect(
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 100, sigmaY: 100),
-                      child: Container(
-                        width: double.infinity,
-                        height: 200,
-                        decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.5),
-                        ),
-                        child: Image.asset(
-                          'lib/images/sandwich.jpg',
-                          width: double.infinity,
-                          height: 200,
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                Positioned(
-                  bottom: 16,
-                  left: 16,
-                  child: Text(
-                    userName,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [bgc1, bgc2, bgc3, bgc4],
             ),
+          ),
+          child: ListView(
+            padding: EdgeInsets.zero,
+            children: [
+              Container(
+                padding: const EdgeInsets.fromLTRB(16, 50, 16, 24),
+                decoration: BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(
+                      color: primaryColor,
+                      width: 1.0,
+                    ),
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    Container(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.3),
+                            blurRadius: 15,
+                            spreadRadius: 2,
+                            offset: const Offset(0, 5),
+                          ),
+                        ],
+                      ),
+                      child: CircleAvatar(
+                        radius: 50,
+                        backgroundColor: Colors.white,
+                        backgroundImage: photoURL != null && photoURL.isNotEmpty
+                            ? NetworkImage(photoURL)
+                            : null,
+                        child: photoURL == null || photoURL.isEmpty
+                            ? Icon(
+                                Icons.person,
+                                size: 60,
+                                color: primaryColor,
+                              )
+                            : null,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: primaryColor.withOpacity(0.9),
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.2),
+                            blurRadius: 8,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
+                      ),
+                      child: Text(
+                        userName,
+                        style: GoogleFonts.lato(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ListTile(
               selected: route == '/profile',
               selectedTileColor: primaryColor.withOpacity(0.1),
@@ -120,7 +147,6 @@ Widget buildDrawer(BuildContext context, {String? currentRoute}) {
                 );
               },
             ),
-            Divider(color: primaryColor.withOpacity(0.2), height: 1),
             ListTile(
               selected: route == '/home',
               selectedTileColor: primaryColor.withOpacity(0.1),
@@ -427,6 +453,7 @@ Widget buildDrawer(BuildContext context, {String? currentRoute}) {
               },
             ),
           ],
+        ),
         ),
       );
     },
