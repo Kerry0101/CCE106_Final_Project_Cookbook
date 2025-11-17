@@ -19,6 +19,7 @@ class SignUp extends StatefulWidget {
 
 class _SignUpState extends State<SignUp> {
   final _formKey = GlobalKey<FormState>();
+  final TextEditingController _username = TextEditingController();
   final TextEditingController _name = TextEditingController();
   final TextEditingController _email = TextEditingController();
   final TextEditingController _password = TextEditingController();
@@ -68,6 +69,7 @@ class _SignUpState extends State<SignUp> {
       }
 
       await FirebaseFirestore.instance.collection('users').doc(userCredential.user!.uid).set({
+        'displayName': _username.text.trim(),
         'name': _name.text.trim(),
         'email': _email.text.trim(),
         'phone': _phone.text.trim().isNotEmpty ? _phone.text.trim() : null,
@@ -145,6 +147,7 @@ class _SignUpState extends State<SignUp> {
   @override
   void dispose() {
     _scrollController.dispose();
+    _username.dispose();
     _name.dispose();
     _email.dispose();
     _password.dispose();
@@ -195,6 +198,34 @@ class _SignUpState extends State<SignUp> {
                     key: _formKey,
                     child: Column(
                       children: [
+                        // Username field
+                        TextFormField(
+                          controller: _username,
+                          decoration: const InputDecoration(
+                            labelText: 'Username',
+                            prefixIcon: Icon(Icons.account_circle),
+                            hintText: 'Enter your username',
+                          ),
+                          autovalidateMode: AutovalidateMode.onUserInteraction,
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return 'Username is required';
+                            }
+                            if (value.trim().length < 2) {
+                              return 'Username must be at least 2 characters';
+                            }
+                            if (value.trim().length > 30) {
+                              return 'Username must be less than 30 characters';
+                            }
+                            // Allow letters, numbers, spaces, underscores, and hyphens
+                            if (!RegExp(r'^[a-zA-Z0-9 _-]+$').hasMatch(value.trim())) {
+                              return 'Username can only contain letters, numbers, spaces, _ and -';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        
                         // Name field
                         TextFormField(
                           controller: _name,

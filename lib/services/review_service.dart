@@ -17,7 +17,7 @@ class ReviewService {
 
     // Get user name
     final userDoc = await _firestore.collection('users').doc(userId).get();
-    final userName = userDoc.data()?['name'] ?? 'Anonymous';
+    final userName = userDoc.data()?['displayName'] ?? 'Anonymous';
 
     // Use auto-generated ID to allow multiple reviews per user
     final reviewRef = _firestore

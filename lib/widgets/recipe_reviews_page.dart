@@ -5,6 +5,7 @@ import 'package:cookbook/services/review_service.dart';
 import 'package:cookbook/models/review.dart';
 import 'package:cookbook/utils/colors.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cookbook/utils/utils.dart';
 
 class RecipeReviewsPage extends StatefulWidget {
@@ -383,6 +384,10 @@ class _RecipeReviewsPageState extends State<RecipeReviewsPage> {
   Widget _buildReviewCard(Review review, {bool isHighlighted = false}) {
     final currentUserId = FirebaseAuth.instance.currentUser?.uid;
     final isOwnReview = currentUserId == review.userId;
+    
+    // Check if review is within 30 days for edit/delete eligibility
+    final daysSinceCreation = DateTime.now().difference(review.createdAt).inDays;
+    final canEditOrDelete = isOwnReview && daysSinceCreation <= 30;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
@@ -398,18 +403,37 @@ class _RecipeReviewsPageState extends State<RecipeReviewsPage> {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // User Avatar (smaller)
-                CircleAvatar(
-                  backgroundColor: primaryColor,
-                  radius: 18,
-                  child: Text(
-                    review.userName.isNotEmpty ? review.userName[0].toUpperCase() : '?',
-                    style: GoogleFonts.lato(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
+                // User Avatar with profile photo
+                StreamBuilder<DocumentSnapshot>(
+                  stream: FirebaseFirestore.instance
+                      .collection('users')
+                      .doc(review.userId)
+                      .snapshots(),
+                  builder: (context, snapshot) {
+                    final userData = snapshot.data?.data() as Map<String, dynamic>?;
+                    final photoURL = userData?['photoURL'] as String?;
+                    final displayName = userData?['displayName'] as String? ?? 
+                                      userData?['name'] as String? ?? 
+                                      review.userName;
+                    
+                    return CircleAvatar(
+                      backgroundColor: primaryColor,
+                      radius: 18,
+                      backgroundImage: photoURL != null && photoURL.isNotEmpty
+                          ? NetworkImage(photoURL)
+                          : null,
+                      child: photoURL == null || photoURL.isEmpty
+                          ? Text(
+                              displayName.isNotEmpty ? displayName[0].toUpperCase() : '?',
+                              style: GoogleFonts.lato(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            )
+                          : null,
+                    );
+                  },
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -420,15 +444,7 @@ class _RecipeReviewsPageState extends State<RecipeReviewsPage> {
                       Row(
                         children: [
                           Flexible(
-                            child: Text(
-                              review.userName,
-                              style: GoogleFonts.lato(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                              maxLines: 1,
-                            ),
+                            child: _buildUserName(review.userId, review.userName),
                           ),
                           if (isOwnReview) ...[
                             const SizedBox(width: 6),
@@ -515,8 +531,8 @@ class _RecipeReviewsPageState extends State<RecipeReviewsPage> {
                       ),
                     ),
                   ),
-                  // Three-dot menu in bottom-right corner (only for own reviews)
-                  if (isOwnReview) ...[
+                  // Three-dot menu in bottom-right corner (only for own reviews within 30 days)
+                  if (canEditOrDelete) ...[
                     const SizedBox(width: 8),
                     PopupMenuButton<String>(
                       padding: EdgeInsets.zero,
@@ -556,8 +572,8 @@ class _RecipeReviewsPageState extends State<RecipeReviewsPage> {
                 ],
               ),
             ],
-            // If no comment but own review, show menu button in bottom-right
-            if ((review.comment == null || review.comment!.isEmpty) && isOwnReview) ...[
+            // If no comment but own review within 30 days, show menu button in bottom-right
+            if ((review.comment == null || review.comment!.isEmpty) && canEditOrDelete) ...[
               const SizedBox(height: 8),
               Align(
                 alignment: Alignment.bottomRight,
@@ -648,6 +664,56 @@ class _RecipeReviewsPageState extends State<RecipeReviewsPage> {
         ],
       ),
     );
+  }
+
+  /// Helper widget to fetch and display current username from user profile
+  Widget _buildUserName(String userId, String fallbackName) {
+    return StreamBuilder<String>(
+      stream: _streamCurrentUserName(userId, fallbackName),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Text(
+            fallbackName,
+            style: GoogleFonts.lato(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+            ),
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+          );
+        }
+        
+        final displayName = snapshot.data ?? fallbackName;
+        return Text(
+          displayName,
+          style: GoogleFonts.lato(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+          ),
+          overflow: TextOverflow.ellipsis,
+          maxLines: 1,
+        );
+      },
+    );
+  }
+
+  /// Stream current display name from user profile for real-time updates
+  Stream<String> _streamCurrentUserName(String userId, String fallbackName) {
+    return FirebaseFirestore.instance
+        .collection('users')
+        .doc(userId)
+        .snapshots()
+        .map<String>((doc) {
+      if (doc.exists) {
+        final data = doc.data();
+        return data?['displayName'] as String? ?? 
+               data?['name'] as String? ?? 
+               fallbackName;
+      }
+      return fallbackName;
+    }).handleError((error) {
+      debugPrint('Error streaming username for review: $error');
+    });
   }
 }
 

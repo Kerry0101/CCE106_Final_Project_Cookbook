@@ -150,17 +150,37 @@ class _LogInState extends State<LogIn> {
       
       if (!userDoc.exists) {
         // Create user document for new Google Sign-In users
+        String displayName = googleUser.displayName ?? '';
+        
+        // If Google doesn't provide a display name, prompt user to enter one
+        if (displayName.isEmpty) {
+          displayName = await _promptForUsername(context) ?? 'User';
+        }
+        
         await FirebaseFirestore.instance
             .collection('users')
             .doc(userCredential.user!.uid)
             .set({
-          'name': googleUser.displayName ?? 'User',
+          'displayName': displayName,
+          'name': googleUser.displayName ?? displayName,
           'email': googleUser.email,
           'photoURL': googleUser.photoUrl ?? userCredential.user?.photoURL,
           'role': 'user',
           'createdAt': FieldValue.serverTimestamp(),
         });
       } else {
+        // Check if existing user has displayName, if not prompt for it
+        if (userDoc.data()?['displayName'] == null || userDoc.data()?['displayName'] == '') {
+          final displayName = await _promptForUsername(context) ?? userDoc.data()?['name'] ?? 'User';
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(userCredential.user!.uid)
+              .update({
+            'displayName': displayName,
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+        }
+        
         // Update existing user's photo if they don't have one
         if (userDoc.data()?['photoURL'] == null && googleUser.photoUrl != null) {
           await FirebaseFirestore.instance
@@ -190,6 +210,86 @@ class _LogInState extends State<LogIn> {
     } finally {
       if (mounted) setState(() => _isGoogleSigningIn = false);
     }
+  }
+
+  Future<String?> _promptForUsername(BuildContext context) async {
+    final TextEditingController usernameController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
+    return showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: Text(
+          'Choose Your Username',
+          style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+        ),
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Please enter a username to display in the app',
+                style: GoogleFonts.poppins(fontSize: 14, color: Colors.grey[600]),
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: usernameController,
+                autofocus: true,
+                decoration: InputDecoration(
+                  labelText: 'Username',
+                  hintText: 'Enter your username',
+                  prefixIcon: const Icon(Icons.account_circle),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Username is required';
+                  }
+                  if (value.trim().length < 2) {
+                    return 'Username must be at least 2 characters';
+                  }
+                  if (value.trim().length > 30) {
+                    return 'Username must be less than 30 characters';
+                  }
+                  if (!RegExp(r'^[a-zA-Z0-9 _-]+$').hasMatch(value.trim())) {
+                    return 'Username can only contain letters, numbers, spaces, _ and -';
+                  }
+                  return null;
+                },
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, null),
+            child: Text(
+              'Cancel',
+              style: GoogleFonts.poppins(color: Colors.grey),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (formKey.currentState!.validate()) {
+                Navigator.pop(context, usernameController.text.trim());
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: primaryColor,
+            ),
+            child: Text(
+              'Continue',
+              style: GoogleFonts.poppins(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _showForgotPasswordDialog() async {

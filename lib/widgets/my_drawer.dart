@@ -41,7 +41,8 @@ Widget buildDrawer(BuildContext context, {String? currentRoute}) {
         return const Center(child: Text('User does not exist'));
       }
 
-      String userName = snapshot.data?.get("name") ?? 'User Name';
+      final userData = snapshot.data!.data();
+      String userName = userData?['displayName'] ?? userData?['name'] ?? 'User';
 
       return Drawer(
         child: ListView(
@@ -199,7 +200,7 @@ Widget buildDrawer(BuildContext context, {String? currentRoute}) {
                 color: route == '/shopping-lists' ? primaryColor : primaryColor.withOpacity(0.7),
               ),
               title: Text(
-                'Shopping Lists',
+                'Grocery List',
                 style: GoogleFonts.lato(
                   fontWeight: route == '/shopping-lists' ? FontWeight.w700 : FontWeight.w400,
                   color: route == '/shopping-lists' ? primaryColor : Colors.black87,
