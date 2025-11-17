@@ -9,6 +9,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cookbook/screens/favorites.dart';
 import 'package:cookbook/screens/home.dart';
 import 'package:cookbook/screens/my_recipes_page.dart';
+import 'package:cookbook/screens/my_reviews_page.dart';
 import 'package:cookbook/screens/recipes/recipe_create.dart';
 import 'package:cookbook/screens/shopping_lists.dart';
 import 'package:cookbook/screens/admin/moderate_recipes_page.dart';
@@ -164,6 +165,30 @@ Widget buildDrawer(BuildContext context, {String? currentRoute}) {
                   MaterialPageRoute(
                     builder: (context) => const MyRecipesPage(),
                     settings: const RouteSettings(name: '/my-recipes'),
+                  ),
+                );
+              },
+            ),
+            ListTile(
+              selected: route == '/my-reviews',
+              selectedTileColor: primaryColor.withOpacity(0.1),
+              leading: Icon(
+                Icons.rate_review,
+                color: route == '/my-reviews' ? primaryColor : primaryColor.withOpacity(0.7),
+              ),
+              title: Text(
+                'My Reviews',
+                style: GoogleFonts.lato(
+                  fontWeight: route == '/my-reviews' ? FontWeight.w700 : FontWeight.w400,
+                  color: route == '/my-reviews' ? primaryColor : Colors.black87,
+                ),
+              ),
+              onTap: () {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const MyReviewsPage(),
+                    settings: const RouteSettings(name: '/my-reviews'),
                   ),
                 );
               },
