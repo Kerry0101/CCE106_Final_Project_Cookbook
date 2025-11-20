@@ -201,7 +201,27 @@ class _LogInState extends State<LogIn> {
         (_) => false,
       );
     } on FirebaseAuthException catch (e) {
-      utils.showError(ErrorMessages.getAuthErrorMessage(e));
+      // Handle account-exists-with-different-credential error
+      if (e.code == 'account-exists-with-different-credential') {
+        final email = e.email;
+        final googleCredential = e.credential;
+        
+        if (email != null && googleCredential != null) {
+          // Show dialog to link accounts
+          _showAccountLinkingDialog(email, googleCredential);
+        } else {
+          utils.showError(
+            'An account already exists with this email. Please sign in with your email and password first.',
+          );
+        }
+      } else if (e.code == 'email-already-in-use') {
+        utils.showError(
+          'This email is already registered with a different sign-in method. '
+          'Please use your email and password to sign in.',
+        );
+      } else {
+        utils.showError(ErrorMessages.getAuthErrorMessage(e));
+      }
     } catch (e) {
       utils.showError(
         'Unable to sign in with Google. Please try again or use email sign-in.',
@@ -288,6 +308,205 @@ class _LogInState extends State<LogIn> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Future<void> _showAccountLinkingDialog(String email, AuthCredential googleCredential) async {
+    final TextEditingController passwordController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+    bool obscurePassword = true;
+    bool isLinking = false;
+
+    return showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: Text(
+            'Link Accounts',
+            style: GoogleFonts.poppins(
+              fontWeight: FontWeight.bold,
+              fontSize: 20,
+            ),
+          ),
+          content: Form(
+            key: formKey,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    Icons.link,
+                    size: 48,
+                    color: primaryColor,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'An account with $email already exists.',
+                    style: GoogleFonts.poppins(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Enter your password to link your Google account with your existing account. This will allow you to sign in using either method.',
+                    style: GoogleFonts.poppins(
+                      fontSize: 13,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  TextFormField(
+                    controller: passwordController,
+                    obscureText: obscurePassword,
+                    decoration: InputDecoration(
+                      labelText: 'Password',
+                      hintText: 'Enter your password',
+                      prefixIcon: const Icon(Icons.lock),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          obscurePassword ? Icons.visibility : Icons.visibility_off,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            obscurePassword = !obscurePassword;
+                          });
+                        },
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Password is required';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.blue[50],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.blue[200]!),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.info_outline, size: 20, color: Colors.blue[700]),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'After linking, you can sign in with either your email/password or Google.',
+                            style: GoogleFonts.poppins(
+                              fontSize: 11,
+                              color: Colors.blue[700],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: isLinking ? null : () => Navigator.pop(context),
+              child: Text(
+                'Cancel',
+                style: GoogleFonts.poppins(color: Colors.grey),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: isLinking
+                  ? null
+                  : () async {
+                      if (formKey.currentState!.validate()) {
+                        setState(() => isLinking = true);
+
+                        try {
+                          // Sign in with email/password first
+                          final userCredential = await FirebaseAuth.instance
+                              .signInWithEmailAndPassword(
+                            email: email,
+                            password: passwordController.text,
+                          );
+
+                          // Link the Google credential to the existing account
+                          await userCredential.user!.linkWithCredential(googleCredential);
+
+                          // Update user document with Google photo if available
+                          final googleSignIn = GoogleSignIn();
+                          final googleUser = await googleSignIn.signInSilently();
+                          
+                          if (googleUser != null && googleUser.photoUrl != null) {
+                            await FirebaseFirestore.instance
+                                .collection('users')
+                                .doc(userCredential.user!.uid)
+                                .update({
+                              'photoURL': googleUser.photoUrl,
+                              'updatedAt': FieldValue.serverTimestamp(),
+                            });
+                          }
+
+                          if (!mounted) return;
+
+                          Navigator.pop(context); // Close dialog
+
+                          utils.showSuccess(
+                            'Accounts linked successfully! You can now sign in with either method.',
+                          );
+
+                          // Navigate to home page
+                          Navigator.of(context).pushAndRemoveUntil(
+                            MaterialPageRoute(builder: (_) => const HomePage()),
+                            (_) => false,
+                          );
+                        } on FirebaseAuthException catch (e) {
+                          setState(() => isLinking = false);
+                          
+                          if (e.code == 'wrong-password') {
+                            utils.showError('Incorrect password. Please try again.');
+                          } else if (e.code == 'user-not-found') {
+                            utils.showError('No account found with this email.');
+                          } else if (e.code == 'provider-already-linked') {
+                            utils.showError('This Google account is already linked.');
+                            Navigator.pop(context);
+                          } else {
+                            utils.showError(ErrorMessages.getAuthErrorMessage(e));
+                          }
+                        } catch (e) {
+                          setState(() => isLinking = false);
+                          utils.showError('Failed to link accounts. Please try again.');
+                          debugPrint('Account linking error: $e');
+                        }
+                      }
+                    },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primaryColor,
+              ),
+              child: isLinking
+                  ? const SizedBox(
+                      height: 16,
+                      width: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    )
+                  : Text(
+                      'Link Accounts',
+                      style: GoogleFonts.poppins(color: Colors.white),
+                    ),
+            ),
+          ],
+        ),
       ),
     );
   }
